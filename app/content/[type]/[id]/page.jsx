@@ -17,6 +17,7 @@ import Sidebar from '../../../home/_components/Sidebar';
 import ContentNavbar from '../../_components/ContentNavbar';
 import { searchContent } from '../../../utils/search';
 import { useParams } from 'next/navigation';
+import CourseContent from '../../course/_components/CourseContent';
 
 export default function ContentPage() {
   const params = useParams();
@@ -221,23 +222,14 @@ export default function ContentPage() {
                     </div>
                   </div>
 
-                  {/* Content Type Specific Sections */}
+                  {/* Course Content Section */}
                   {content.contentType === 'course' && (
-                    <div className="mb-6 p-4 bg-gray-800 rounded-xl">
-                      <h3 className="text-lg font-semibold text-white mb-3">Course Content</h3>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-gray-400">
-                          <span>Total Duration:</span>
-                          <span>{content.duration}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-gray-400">
-                          <span>Total Lessons:</span>
-                          <span>{content.totalContent}</span>
-                        </div>
-                      </div>
+                    <div className="mt-6">
+                      <CourseContent course={content} />
                     </div>
                   )}
 
+                  {/* Article Content Section */}
                   {content.contentType === 'article' && (
                     <div className="mb-6 p-4 bg-gray-800 rounded-xl">
                       <p className="text-gray-300 leading-relaxed">
@@ -247,7 +239,7 @@ export default function ContentPage() {
                   )}
 
                   {/* Creator Info */}
-                  <div className="flex items-start gap-4 p-4 bg-gray-800 rounded-xl">
+                  <div className="mt-6 flex items-start gap-4 p-4 bg-gray-800 rounded-xl">
                     <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden">
                       <img
                         src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e"
