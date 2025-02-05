@@ -5,23 +5,22 @@ import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Settings, 
-  FileText,
-  CreditCard
+  CreditCard,
+  LogOut
 } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 const Sidebar = () => {
   const pathname = usePathname();
+  const { signOut } = useClerk();
+  const router = useRouter();
 
   const routes = [
     {
       icon: LayoutDashboard,
       label: "Dashboard",
       href: "/dashboard",
-    },
-    {
-      icon: FileText,
-      label: "Your Content",
-      href: "/content",
     },
     {
       icon: CreditCard,
@@ -35,9 +34,14 @@ const Sidebar = () => {
     },
   ];
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/sign-in");
+  };
+
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
-      <div className="px-3 py-2">
+      <div className="px-3 py-2 flex-1">
         <h2 className="mb-2 px-4 text-lg font-semibold">
           Menu
         </h2>
@@ -59,6 +63,17 @@ const Sidebar = () => {
             </Link>
           ))}
         </div>
+      </div>
+      <div className="px-3 py-2 border-t border-gray-700">
+        <button
+          onClick={handleSignOut}
+          className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-gray-800 rounded-lg transition text-zinc-400"
+        >
+          <div className="flex items-center flex-1">
+            <LogOut className="h-5 w-5 mr-3" />
+            Logout
+          </div>
+        </button>
       </div>
     </div>
   );

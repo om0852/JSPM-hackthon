@@ -5,18 +5,16 @@ import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserButton } from "@clerk/nextjs"
 import { searchContent } from "../../utils/search"
-import SearchResults from './SearchResults'
+import SearchResults from '../../home/_components/SearchResults'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-function Navbar({ selectedFilter, onFilterChange }) {
+function ContentNavbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchRef = useRef(null);
   const router = useRouter();
-
-  const filters = ['All', 'Articles', 'Videos', 'Courses', 'Images'];
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -45,7 +43,7 @@ function Navbar({ selectedFilter, onFilterChange }) {
     e.preventDefault();
     if (searchQuery.trim() && searchResults.length > 0) {
       const firstResult = searchResults[0];
-      router.push(`/${firstResult.contentType}s/${firstResult.id}`);
+      router.push(`/content/${firstResult.contentType}/${firstResult.id}`);
       setSearchQuery('');
       setSearchResults([]);
       setIsSearchFocused(false);
@@ -125,34 +123,8 @@ function Navbar({ selectedFilter, onFilterChange }) {
           <UserButton afterSignOutUrl="/" />
         </motion.div>
       </div>
-
-      {/* Filter Menu */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="flex items-center justify-center px-4 py-2 border-t border-gray-800 bg-gray-900"
-      >
-        <nav className="flex justify-center gap-2 w-full max-w-2xl">
-          {filters.map((filter) => (
-            <motion.button
-              key={filter}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onFilterChange(filter)}
-              className={`px-6 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-all duration-200 flex-1 max-w-[120px] ${
-                selectedFilter === filter
-                ? 'bg-red-500 text-white shadow-md'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-              }`}
-            >
-              {filter}
-            </motion.button>
-          ))}
-        </nav>
-      </motion.div>
     </motion.div>
   );
 }
 
-export default Navbar
+export default ContentNavbar 

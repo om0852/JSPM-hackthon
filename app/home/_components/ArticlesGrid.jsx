@@ -3,30 +3,33 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ThumbsUp, BookOpen } from 'lucide-react';
+import Link from 'next/link';
 import CategoryMenu from './CategoryMenu';
 
 const articles = [
   {
     id: 1,
-    title: "Understanding Modern JavaScript: ES6 and Beyond",
+    title: "Understanding Modern JavaScript",
     author: "Sarah Johnson",
     thumbnail: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
     readTime: "5 min read",
     likes: "8.2K",
     type: "Article",
     category: "Tech",
-    excerpt: "Dive deep into modern JavaScript features and best practices..."
+    contentType: "article",
+    excerpt: "Dive deep into modern JavaScript features and best practices. Learn about the latest ES6+ features, async/await, modules, and more. This comprehensive guide will help you understand modern JavaScript development."
   },
   {
     id: 2,
-    title: "The Complete Guide to React Hooks in 2024",
+    title: "The Complete Guide to React Hooks",
     author: "Mike Chen",
     thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee",
     readTime: "8 min read",
     likes: "12K",
     type: "Article",
     category: "Tech",
-    excerpt: "Learn how to leverage React Hooks to write cleaner, more efficient code..."
+    contentType: "article",
+    excerpt: "Learn how to leverage React Hooks to write cleaner, more efficient code. Understand useState, useEffect, useContext, and custom hooks. This guide includes practical examples and best practices."
   },
   {
     id: 3,
@@ -37,7 +40,8 @@ const articles = [
     likes: "6.5K",
     type: "Article",
     category: "Education",
-    excerpt: "Best practices for building robust and scalable APIs using Node.js..."
+    contentType: "article",
+    excerpt: "Best practices for building robust and scalable APIs using Node.js. Learn about middleware, error handling, authentication, and database integration."
   },
   {
     id: 4,
@@ -48,7 +52,8 @@ const articles = [
     likes: "15K",
     type: "Article",
     category: "Education",
-    excerpt: "Get started with machine learning concepts and practical applications..."
+    contentType: "article",
+    excerpt: "Get started with machine learning concepts and practical applications. Understand the basics of algorithms, data preprocessing, and model training."
   }
 ];
 
@@ -68,49 +73,53 @@ export default function ArticlesGrid() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AnimatePresence mode="popLayout">
           {filteredArticles.map((article, index) => (
-            <motion.div
-              key={article.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: index * 0.1 }}
-              layout
-              className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border border-gray-700"
+            <Link 
+              key={article.id} 
+              href={`/content/article/${article.id}`}
             >
-              {/* Article Header */}
-              <div className="relative h-48">
-                <img
-                  src={article.thumbnail}
-                  alt={article.title}
-                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-red-400">
-                    {article.title}
-                  </h3>
-                  <p className="text-gray-200 text-sm">{article.author}</p>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.1 }}
+                layout
+                className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border border-gray-700"
+              >
+                {/* Article Header */}
+                <div className="relative h-48">
+                  <img
+                    src={article.thumbnail}
+                    alt={article.title}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-red-400">
+                      {article.title}
+                    </h3>
+                    <p className="text-gray-200 text-sm">{article.author}</p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Article Content */}
-              <div className="p-4">
-                <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                  {article.excerpt}
-                </p>
-                
-                <div className="flex items-center justify-between text-sm text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4" />
-                    <span>{article.readTime}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>{article.likes}</span>
+                {/* Article Content */}
+                <div className="p-4">
+                  <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                    {article.excerpt}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm text-gray-400">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{article.readTime}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{article.likes}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </Link>
           ))}
         </AnimatePresence>
       </div>
