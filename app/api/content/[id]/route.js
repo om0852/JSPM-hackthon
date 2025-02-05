@@ -7,18 +7,9 @@ import { currentUser } from '@clerk/nextjs/server';
 export async function GET(req, { params }) {
     try {
         const { id } = params;
-        const user = await currentUser();
-        
-        if (!user) {
-            return NextResponse.json({ 
-                status: 'error', 
-                message: 'Unauthorized' 
-            }, { status: 401 });
-        }
-
         await connectDB();
         
-        const content = await Content.findOne({ _id: id, userId: user.id });
+        const content = await Content.findById(id);
         
         if (!content) {
             return NextResponse.json({ 
@@ -26,6 +17,10 @@ export async function GET(req, { params }) {
                 message: 'Content not found' 
             }, { status: 404 });
         }
+
+        // Increment views
+        content.views += 1;
+        await content.save();
 
         return NextResponse.json({
             status: 'success',

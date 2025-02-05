@@ -1,68 +1,150 @@
 "use client";
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ThumbsUp, BookOpen } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
+import { Clock, ThumbsUp, ThumbsDown, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useUser } from '@clerk/nextjs';
 import CategoryMenu from './CategoryMenu';
 
-const articles = [
-  {
-    id: 1,
-    title: "Understanding Modern JavaScript",
-    author: "Sarah Johnson",
-    thumbnail: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6",
-    readTime: "5 min read",
-    likes: "8.2K",
-    type: "Article",
-    category: "Tech",
-    contentType: "article",
-    excerpt: "Dive deep into modern JavaScript features and best practices. Learn about the latest ES6+ features, async/await, modules, and more. This comprehensive guide will help you understand modern JavaScript development."
-  },
-  {
-    id: 2,
-    title: "The Complete Guide to React Hooks",
-    author: "Mike Chen",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee",
-    readTime: "8 min read",
-    likes: "12K",
-    type: "Article",
-    category: "Tech",
-    contentType: "article",
-    excerpt: "Learn how to leverage React Hooks to write cleaner, more efficient code. Understand useState, useEffect, useContext, and custom hooks. This guide includes practical examples and best practices."
-  },
-  {
-    id: 3,
-    title: "Building Scalable APIs with Node.js",
-    author: "Alex Thompson",
-    thumbnail: "https://images.unsplash.com/photo-1504639725590-34d0984388bd",
-    readTime: "10 min read",
-    likes: "6.5K",
-    type: "Article",
-    category: "Education",
-    contentType: "article",
-    excerpt: "Best practices for building robust and scalable APIs using Node.js. Learn about middleware, error handling, authentication, and database integration."
-  },
-  {
-    id: 4,
-    title: "Machine Learning: A Beginner's Guide",
-    author: "Dr. Emily White",
-    thumbnail: "https://images.unsplash.com/photo-1515879218367-8466d910aaa4",
-    readTime: "12 min read",
-    likes: "15K",
-    type: "Article",
-    category: "Education",
-    contentType: "article",
-    excerpt: "Get started with machine learning concepts and practical applications. Understand the basics of algorithms, data preprocessing, and model training."
-  }
-];
-
 export default function ArticlesGrid() {
+  const { user, isLoaded } = useUser();
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [likeInProgress, setLikeInProgress] = useState(false);
+
+  const observer = useRef();
+  const lastArticleElementRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
+
+  const fetchArticles = async (pageNum = 1, shouldAppend = false) => {
+    try {
+      const response = await fetch(
+        `/api/content?page=${pageNum}&limit=12&type=article&filter=published`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch articles');
+      }
+
+      const articlesWithLikeStatus = data.data.map(article => ({
+        ...article,
+        isLiked: user ? article.likes.some(like => like.userId === user.id) : false
+      }));
+
+      setArticles(prev => shouldAppend ? [...prev, ...articlesWithLikeStatus] : articlesWithLikeStatus);
+      setHasMore(data.pagination.hasMore);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      toast.error('Failed to fetch articles');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLike = async (articleId, event) => {
+    event.preventDefault(); // Prevent navigation
+    
+    if (!isLoaded || !user) {
+      toast.error('Please sign in to like articles');
+      return;
+    }
+
+    if (likeInProgress) return;
+
+    setLikeInProgress(true);
+    try {
+      const response = await fetch(`/api/content/${articleId}/like`, {
+        method: 'POST'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to process like');
+      }
+
+      setArticles(prev => prev.map(article => {
+        if (article._id === articleId) {
+          return {
+            ...article,
+            likesCount: data.likesCount,
+            isLiked: data.isLiked
+          };
+        }
+        return article;
+      }));
+
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setLikeInProgress(false);
+    }
+  };
+
+  // Initial fetch and refresh handling
+  useEffect(() => {
+    if (isLoaded) {
+      setPage(1);
+      setArticles([]);
+      setHasMore(true);
+      setLoading(true);
+      fetchArticles(1, false);
+    }
+  }, [isLoaded]);
+
+  // Fetch more data when page changes
+  useEffect(() => {
+    if (page > 1 && isLoaded) {
+      setLoading(true);
+      fetchArticles(page, true);
+    }
+  }, [page, isLoaded]);
 
   const filteredArticles = articles.filter(article => 
     selectedCategory === 'All' ? true : article.category === selectedCategory
   );
+
+  if (loading && page === 1) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+        <p className="mt-2 text-gray-300">Loading articles...</p>
+      </div>
+    );
+  }
+
+  if (error && page === 1) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (articles.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-300 text-lg">No articles available</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -71,13 +153,11 @@ export default function ArticlesGrid() {
         onCategoryChange={setSelectedCategory}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <AnimatePresence mode="popLayout">
-          {filteredArticles.map((article, index) => (
-            <Link 
-              key={article.id} 
-              href={`/content/article/${article.id}`}
-            >
+        {filteredArticles.map((article, index) => (
+          <div key={article._id} className="relative">
+            <Link href={`/content/article/${article._id}`}>
               <motion.div
+                ref={index === articles.length - 1 ? lastArticleElementRef : null}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -88,7 +168,7 @@ export default function ArticlesGrid() {
                 {/* Article Header */}
                 <div className="relative h-48">
                   <img
-                    src={article.thumbnail}
+                    src={article.thumbnailURL || '/placeholder-image.jpg'}
                     alt={article.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
                   />
@@ -104,25 +184,53 @@ export default function ArticlesGrid() {
                 {/* Article Content */}
                 <div className="p-4">
                   <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                    {article.excerpt}
+                    {article.description}
                   </p>
                   
                   <div className="flex items-center justify-between text-sm text-gray-400">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{article.readTime}</span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-4 h-4" />
+                        <span>{new Date(article.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{article.commentsCount || 0}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>{article.likes}</span>
-                    </div>
+                    <button
+                      onClick={(e) => handleLike(article._id, e)}
+                      className={`flex items-center gap-1 transition-colors ${
+                        article.isLiked ? 'text-red-400 hover:text-red-500' : 'text-gray-400 hover:text-gray-300'
+                      }`}
+                    >
+                      {article.isLiked ? (
+                        <ThumbsUp className="w-4 h-4 fill-current" />
+                      ) : (
+                        <ThumbsUp className="w-4 h-4" />
+                      )}
+                      <span>{article.likesCount || 0}</span>
+                    </button>
                   </div>
                 </div>
               </motion.div>
             </Link>
-          ))}
-        </AnimatePresence>
+          </div>
+        ))}
       </div>
+
+      {loading && page > 1 && (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-3 border-blue-500 border-t-transparent"></div>
+          <p className="mt-2 text-gray-300">Loading more articles...</p>
+        </div>
+      )}
+
+      {!loading && !hasMore && articles.length > 0 && (
+        <div className="text-center py-4">
+          <p className="text-gray-300">No more articles to load</p>
+        </div>
+      )}
     </div>
   );
 } 

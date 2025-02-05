@@ -9,6 +9,7 @@ import CourseGrid from "./_components/CourseGrid";
 import ArticlesGrid from "./_components/ArticlesGrid";
 import ImagesGrid from "./_components/ImagesGrid";
 
+
 export default function Home() {
   const [selectedFilter, setSelectedFilter] = useState('All');
 
@@ -42,6 +43,9 @@ export default function Home() {
               <h2 className="text-xl font-semibold mb-6 text-gray-100">
                 {selectedFilter === 'All' ? 'Recommended for you' : `${selectedFilter}`}
               </h2>
+              {/* Filter Menu */}
+              <div className="flex items-center justify-center mb-8 space-x-4 overflow-x-auto pb-4">
+              </div>
               {renderContent()}
             </div>
           </main>
