@@ -29,6 +29,24 @@ const ContentSchema = new mongoose.Schema({
     type: String,
     required: true, // Clerk user ID
   },
+  // Creator information
+  creator: {
+    name: {
+      type: String,
+      required: true,
+    },
+    image: String,
+    bio: String,
+    socialLinks: {
+      twitter: String,
+      github: String,
+      website: String
+    },
+    creatorWallet: {
+      type: String,
+      required: true,
+    }
+  },
   title: {
     type: String,
     required: true,
@@ -47,10 +65,6 @@ const ContentSchema = new mongoose.Schema({
     required: true,
   },
   thumbnailURL: String,
-  creatorWallet: {
-    type: String,
-    required: true,
-  },
   subscriptionTier: {
     type: String,
     enum: ['free', 'basic', 'premium'],
@@ -102,11 +116,13 @@ const ContentSchema = new mongoose.Schema({
   }
 });
 
+// Update timestamps
 ContentSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
 });
 
+// Update counts when likes/comments are modified
 ContentSchema.pre('save', function(next) {
   if (this.isModified('likes')) {
     this.likesCount = this.likes.length;

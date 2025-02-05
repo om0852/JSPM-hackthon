@@ -5,7 +5,7 @@ import { Trash2, Edit, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrigger, filter = 'all' }) {
+export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrigger, filter = 'all', user }) {
     const [contents, setContents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -34,7 +34,7 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
             const response = await fetch(
                 `/api/content?page=${pageNum}&limit=10&filter=${filter}${
                     searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
-                }`
+                }${user?.id ? `&userId=${user.id}` : ''}`
             );
             const data = await response.json();
 

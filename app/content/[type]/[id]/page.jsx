@@ -15,13 +15,9 @@ import Sidebar from '../../../home/_components/Sidebar';
 import ContentNavbar from '../../_components/ContentNavbar';
 import { useParams } from 'next/navigation';
 import CourseContent from '../../course/_components/CourseContent';
-<<<<<<< HEAD
-import CourseOverview from '../../course/_components/CourseOverview';
-=======
 import { useUser } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import ArticleView from '../../article/_components/ArticleView';
->>>>>>> 26fde2eb90fcc529e437cbd3a925a448a4ded082
 
 export default function ContentPage() {
   const params = useParams();
@@ -174,140 +170,12 @@ export default function ContentPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Content */}
               <div className="lg:col-span-2">
-<<<<<<< HEAD
-                {/* Content Preview */}
-                <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800">
-                  <img
-                    src={content.thumbnail}
-                    alt={content.title}
-                    className="w-full h-full object-cover"
-                  />
-                  {content.contentType === 'video' && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center"
-                      >
-                        <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-transparent border-l-white ml-1" />
-                      </motion.button>
-                    </div>
-                  )}
-                  {content.contentType === 'image' && (
-                    <div className="absolute bottom-4 right-4">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download Image
-                      </motion.button>
-                    </div>
-                  )}
-                  {content.contentType === 'course' && (
-                    <div className="absolute bottom-4 right-4">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2"
-                      >
-                        <span className="font-semibold">{content.price}</span>
-                        <span>•</span>
-                        <span>Enroll Now</span>
-                      </motion.button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Content Info */}
-                <div className="mt-4">
-                  <h1 className="text-2xl font-bold text-white mb-2">
-                    {content.title}
-                  </h1>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2 text-gray-400">
-                        {content.contentType === 'video' && (
-                          <>
-                            <Users className="w-4 h-4" />
-                            <span>{content.views} views</span>
-                          </>
-                        )}
-                        {content.contentType === 'course' && (
-                          <>
-                            <Users className="w-4 h-4" />
-                            <span>{content.students} students</span>
-                            <span className="px-1">•</span>
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            <span>{content.rating}</span>
-                          </>
-                        )}
-                        {content.contentType === 'article' && (
-                          <>
-                            <Clock className="w-4 h-4" />
-                            <span>{content.readTime}</span>
-                          </>
-                        )}
-                        {content.contentType === 'image' && (
-                          <>
-                            <Download className="w-4 h-4" />
-                            <span>{content.downloads} downloads</span>
-                          </>
-                        )}
-                      </div>
-                      {mounted && (
-                        <>
-                          <span className="text-gray-400">•</span>
-                          <span className="text-gray-400">{formatDate()}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={handleLike}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                          isLiked
-                            ? 'bg-red-500 text-white'
-                            : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                        } transition-colors`}
-                      >
-                        <ThumbsUp className="w-4 h-4" />
-                        <span>{content.likes}</span>
-                      </button>
-                      <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">
-                        <Share2 className="w-4 h-4" />
-                        <span>Share</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Course Content */}
-                  {content.contentType === 'course' && (
-                    <div className="space-y-6">
-                      <CourseOverview course={content} />
-                      <CourseContent course={content} />
-                    </div>
-                  )}
-
-                  {/* Article Content */}
-                  {content.contentType === 'article' && (
-                    <div className="mb-6 p-4 bg-gray-800 rounded-xl">
-                      <p className="text-gray-300 leading-relaxed">
-                        {content.excerpt}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Creator Info */}
-                  <div className="mt-6 flex items-start gap-4 p-4 bg-gray-800 rounded-xl">
-                    <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden">
-=======
                 {content.contentType === 'article' ? (
                   <ArticleView article={content} />
                 ) : (
                   <>
                     {/* Content Preview */}
                     <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800">
->>>>>>> 26fde2eb90fcc529e437cbd3a925a448a4ded082
                       <img
                         src={content.thumbnailURL || '/placeholder-image.jpg'}
                         alt={content.title}

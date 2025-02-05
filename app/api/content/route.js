@@ -53,6 +53,7 @@ export async function GET(req) {
         const limit = parseInt(searchParams.get('limit')) || 10;
         const type = searchParams.get('type');
         const filter = searchParams.get('filter') || 'all';
+        const userId = searchParams.get('userId');
 
         await connectDB();
 
@@ -69,6 +70,11 @@ export async function GET(req) {
             query.isPublished = true;
         } else if (filter === 'draft') {
             query.isPublished = false;
+        }
+
+        // Add user filter if specified
+        if (userId) {
+            query.userId = userId;
         }
 
         // Get total count for pagination

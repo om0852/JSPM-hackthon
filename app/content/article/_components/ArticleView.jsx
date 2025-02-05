@@ -1,7 +1,8 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Clock, MessageCircle } from 'lucide-react';
+import { Clock, MessageCircle, Globe, Twitter, Github } from 'lucide-react';
+import Comments from './Comments';
 
 export default function ArticleView({ article }) {
   const formatDate = (date) => {
@@ -73,12 +74,67 @@ export default function ArticleView({ article }) {
           <span>Likes:</span>
           <span>{article.likesCount || 0}</span>
         </div>
-        {article.subscriptionTier !== 'free' && (
+        {article.subscriptionTier !== 'free' && article.price > 0 && (
           <div className="flex items-center gap-2">
             <span>Price:</span>
-            <span>${article.price || 0}</span>
+            <span>${article.price}</span>
           </div>
         )}
+      </div>
+
+      {/* Creator Info */}
+      <div className="flex items-start gap-6 p-6 bg-gray-800 rounded-xl">
+        <img
+          src={article.creator?.image || '/placeholder-user.jpg'}
+          alt={article.creator?.name}
+          className="w-16 h-16 rounded-full object-cover"
+        />
+        <div className="flex-1">
+          <h3 className="text-xl font-semibold text-white mb-2">
+            {article.creator?.name}
+          </h3>
+          {article.creator?.bio && (
+            <p className="text-gray-300 mb-4">{article.creator.bio}</p>
+          )}
+          <div className="flex items-center gap-4">
+            {article.creator?.socialLinks?.website && (
+              <a
+                href={article.creator.socialLinks.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Globe className="w-5 h-5" />
+              </a>
+            )}
+            {article.creator?.socialLinks?.twitter && (
+              <a
+                href={article.creator.socialLinks.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Twitter className="w-5 h-5" />
+              </a>
+            )}
+            {article.creator?.socialLinks?.github && (
+              <a
+                href={article.creator.socialLinks.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Github className="w-5 h-5" />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Comments Section */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-semibold text-white mb-6">Comments</h2>
+        <Comments contentId={article._id} />
       </div>
     </div>
   );

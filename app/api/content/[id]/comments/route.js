@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '../../../../lib/mongodb';
 import Content from '../../../../models/Content';
 import { currentUser } from '@clerk/nextjs/server';
+import mongoose from 'mongoose';
 
 // Get comments for a content
 export async function GET(req, { params }) {
@@ -22,22 +23,29 @@ export async function GET(req, { params }) {
             }, { status: 404 });
         }
 
-        // Get paginated comments
+        // Sort comments by createdAt in descending order and paginate
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
-        const comments = content.comments
+        const totalComments = content.comments.length;
+
+        const paginatedComments = content.comments
             .sort((a, b) => b.createdAt - a.createdAt)
             .slice(startIndex, endIndex);
 
+        // Add isLiked status for the current user
+        const user = await currentUser();
+        const commentsWithLikeStatus = paginatedComments.map(comment => ({
+            ...comment.toObject(),
+            isLiked: user ? comment.likes.some(like => like.userId === user.id) : false
+        }));
+
         return NextResponse.json({
             status: 'success',
-            data: comments,
+            data: commentsWithLikeStatus,
             pagination: {
-                total: content.commentsCount,
-                page,
-                limit,
-                pages: Math.ceil(content.commentsCount / limit),
-                hasMore: endIndex < content.commentsCount
+                currentPage: page,
+                totalPages: Math.ceil(totalComments / limit),
+                hasMore: endIndex < totalComments
             }
         });
 
@@ -64,6 +72,15 @@ export async function POST(req, { params }) {
             }, { status: 401 });
         }
 
+        const { text } = await req.json();
+
+        if (!text || !text.trim()) {
+            return NextResponse.json({ 
+                status: 'error', 
+                message: 'Comment text is required' 
+            }, { status: 400 });
+        }
+
         await connectDB();
         
         const content = await Content.findById(id);
@@ -75,32 +92,34 @@ export async function POST(req, { params }) {
             }, { status: 404 });
         }
 
-        const { text } = await req.json();
-
-        if (!text?.trim()) {
-            return NextResponse.json({ 
-                status: 'error', 
-                message: 'Comment text is required' 
-            }, { status: 400 });
-        }
-
+        // Create a new comment with a proper MongoDB ObjectId
         const newComment = {
+            _id: new mongoose.Types.ObjectId(),
             userId: user.id,
             userName: `${user.firstName} ${user.lastName}`,
             userImage: user.imageUrl,
             text: text.trim(),
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            likes: [],
+            likesCount: 0,
+            replies: []
         };
 
-        content.comments.push(newComment);
+        // Add the comment to the beginning of the comments array
+        content.comments.unshift(newComment);
         await content.save();
+
+        // Return the newly created comment with isLiked status
+        const commentWithLikeStatus = {
+            ...newComment,
+            isLiked: false
+        };
 
         return NextResponse.json({
             status: 'success',
             message: 'Comment added successfully',
-            data: newComment,
-            commentsCount: content.commentsCount
+            data: commentWithLikeStatus
         });
 
     } catch (error) {
@@ -126,6 +145,13 @@ export async function DELETE(req, { params }) {
                 status: 'error', 
                 message: 'Unauthorized' 
             }, { status: 401 });
+        }
+
+        if (!commentId) {
+            return NextResponse.json({ 
+                status: 'error', 
+                message: 'Comment ID is required' 
+            }, { status: 400 });
         }
 
         await connectDB();
@@ -161,8 +187,7 @@ export async function DELETE(req, { params }) {
 
         return NextResponse.json({
             status: 'success',
-            message: 'Comment deleted successfully',
-            commentsCount: content.commentsCount
+            message: 'Comment deleted successfully'
         });
 
     } catch (error) {

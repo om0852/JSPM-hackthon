@@ -5,12 +5,33 @@ import CreateContentModal from './components/CreateContentModal';
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
+import { useUser } from '@clerk/nextjs';
 
 export default function ContentPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [editingContent, setEditingContent] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { user, isLoaded } = useUser();
+
+  // Show loading state while user data is being fetched
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+        <p className="ml-2 text-gray-900">Loading...</p>
+      </div>
+    );
+  }
+
+  // Redirect or show message if no user is found
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-900">Please sign in to view your content.</p>
+      </div>
+    );
+  }
 
   const refreshContents = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
@@ -136,6 +157,7 @@ export default function ContentPage() {
           onEdit={handleEdit}
           onDelete={handleContentDeleted}
           refreshTrigger={refreshTrigger}
+          user={user}
         />
       </motion.div>
 

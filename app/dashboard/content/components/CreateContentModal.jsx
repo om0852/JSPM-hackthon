@@ -412,7 +412,7 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
                       )}
                     </div>
 
-                    <div>
+                   {formData.subscriptionTier !== 'free' && <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Price {formData.subscriptionTier !== 'free' && <span className="text-red-500 ml-1">*</span>}
                       </label>
@@ -437,7 +437,7 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
                           {errors.price}
                         </p>
                       )}
-                    </div>
+                    </div>}
                   </div>
 
                   {/* Categories */}
