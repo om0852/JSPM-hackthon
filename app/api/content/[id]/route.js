@@ -6,11 +6,12 @@ import { currentUser } from '@clerk/nextjs/server';
 // Get single content
 export async function GET(req, { params }) {
     try {
-        const { id } = params;
+        const { id } =await params;
         await connectDB();
         
-        const content = await Content.findById(id);
-        
+        // Find content and select all fields
+        const content = await Content.findById(id).lean();
+        console.log(content);
         if (!content) {
             return NextResponse.json({ 
                 status: 'error', 
@@ -18,13 +19,28 @@ export async function GET(req, { params }) {
             }, { status: 404 });
         }
 
-        // Increment views
-        content.views += 1;
-        await content.save();
+        // Increment views using updateOne to avoid validation
+        await Content.updateOne(
+            { _id: id },
+            { $inc: { views: 1 } }
+        );
+
+        // Add default values for required fields if they don't exist
+        const transformedContent = {
+            ...content,
+            views: (content.views || 0) + 1, // Increment the view in response
+            creator: {
+                name: content.creator?.name || 'Anonymous',
+                creatorWallet: content.creator?.creatorWallet || '0x0000000000000000000000000000000000000000',
+                ...content.creator
+            },
+            likesCount: content.likesCount || 0,
+            commentsCount: content.commentsCount || 0
+        };
 
         return NextResponse.json({
             status: 'success',
-            data: content
+            data: transformedContent
         });
 
     } catch (error) {
@@ -40,7 +56,7 @@ export async function GET(req, { params }) {
 // Update content
 export async function PUT(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const user = await currentUser();
         
         if (!user) {
@@ -86,7 +102,7 @@ export async function PUT(req, { params }) {
 // Delete content
 export async function DELETE(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const user = await currentUser();
         
         if (!user) {

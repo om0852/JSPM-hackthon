@@ -6,7 +6,7 @@ import { currentUser } from '@clerk/nextjs/server';
 // Toggle like status
 export async function POST(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const user = await currentUser();
         
         if (!user) {

@@ -7,14 +7,14 @@ import mongoose from 'mongoose';
 // Get comments for a content
 export async function GET(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const { searchParams } = new URL(req.url);
         const page = parseInt(searchParams.get('page')) || 1;
         const limit = parseInt(searchParams.get('limit')) || 10;
 
         await connectDB();
         
-        const content = await Content.findById(id);
+        const content = await Content.findById(id).lean();
         
         if (!content) {
             return NextResponse.json({ 
@@ -26,17 +26,17 @@ export async function GET(req, { params }) {
         // Sort comments by createdAt in descending order and paginate
         const startIndex = (page - 1) * limit;
         const endIndex = page * limit;
-        const totalComments = content.comments.length;
+        const totalComments = content.comments?.length || 0;
 
-        const paginatedComments = content.comments
-            .sort((a, b) => b.createdAt - a.createdAt)
+        const paginatedComments = (content.comments || [])
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
             .slice(startIndex, endIndex);
 
         // Add isLiked status for the current user
         const user = await currentUser();
         const commentsWithLikeStatus = paginatedComments.map(comment => ({
-            ...comment.toObject(),
-            isLiked: user ? comment.likes.some(like => like.userId === user.id) : false
+            ...comment,
+            isLiked: user ? comment.likes?.some(like => like.userId === user.id) : false
         }));
 
         return NextResponse.json({
@@ -62,7 +62,7 @@ export async function GET(req, { params }) {
 // Add a new comment
 export async function POST(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const user = await currentUser();
         
         if (!user) {
@@ -92,7 +92,7 @@ export async function POST(req, { params }) {
             }, { status: 404 });
         }
 
-        // Create a new comment with a proper MongoDB ObjectId
+        // Create a new comment
         const newComment = {
             _id: new mongoose.Types.ObjectId(),
             userId: user.id,
@@ -102,24 +102,20 @@ export async function POST(req, { params }) {
             createdAt: new Date(),
             updatedAt: new Date(),
             likes: [],
-            likesCount: 0,
-            replies: []
+            likesCount: 0
         };
 
         // Add the comment to the beginning of the comments array
         content.comments.unshift(newComment);
         await content.save();
 
-        // Return the newly created comment with isLiked status
-        const commentWithLikeStatus = {
-            ...newComment,
-            isLiked: false
-        };
-
         return NextResponse.json({
             status: 'success',
             message: 'Comment added successfully',
-            data: commentWithLikeStatus
+            data: {
+                ...newComment,
+                isLiked: false
+            }
         });
 
     } catch (error) {
@@ -135,7 +131,7 @@ export async function POST(req, { params }) {
 // Delete a comment
 export async function DELETE(req, { params }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const { searchParams } = new URL(req.url);
         const commentId = searchParams.get('commentId');
         const user = await currentUser();
@@ -165,24 +161,28 @@ export async function DELETE(req, { params }) {
             }, { status: 404 });
         }
 
-        const comment = content.comments.id(commentId);
+        // Find the comment index
+        const commentIndex = content.comments.findIndex(
+            comment => comment._id.toString() === commentId
+        );
 
-        if (!comment) {
+        if (commentIndex === -1) {
             return NextResponse.json({ 
                 status: 'error', 
                 message: 'Comment not found' 
             }, { status: 404 });
         }
 
-        // Only allow comment owner or content owner to delete
-        if (comment.userId !== user.id && content.userId !== user.id) {
+        // Check if user is authorized to delete the comment
+        if (content.comments[commentIndex].userId !== user.id && content.userId !== user.id) {
             return NextResponse.json({ 
                 status: 'error', 
                 message: 'Unauthorized to delete this comment' 
             }, { status: 403 });
         }
 
-        comment.remove();
+        // Remove the comment
+        content.comments.splice(commentIndex, 1);
         await content.save();
 
         return NextResponse.json({

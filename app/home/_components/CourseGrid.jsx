@@ -1,72 +1,99 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ThumbsUp, BookOpen, Star } from 'lucide-react';
+import { Clock, ThumbsUp, BookOpen, Star, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import CategoryMenu from './CategoryMenu';
-
-const courses = [
-  {
-    id: 1,
-    title: "Complete Web Development Bootcamp 2024",
-    author: "John Developer",
-    thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-    duration: "2:15:30",
-    likes: "12K",
-    rating: "4.8",
-    students: "2.5K",
-    type: "Course",
-    category: "Tech",
-    contentType: "course"
-  },
-  {
-    id: 2,
-    title: "UI/UX Design Principles for Beginners",
-    author: "Design Masters",
-    thumbnail: "https://images.unsplash.com/photo-1561070791-2526d30994b5",
-    duration: "1:30:00",
-    likes: "18K",
-    rating: "4.9",
-    students: "3.2K",
-    type: "Course",
-    category: "Art",
-    contentType: "course"
-  },
-  {
-    id: 3,
-    title: "Machine Learning with Python: From Zero to Hero",
-    author: "AI Experts",
-    thumbnail: "https://images.unsplash.com/photo-1555949963-aa79dcee981c",
-    duration: "3:45:00",
-    likes: "15K",
-    rating: "4.7",
-    students: "1.8K",
-    type: "Course",
-    category: "Education",
-    contentType: "course"
-  },
-  {
-    id: 4,
-    title: "Mobile App Development with React Native",
-    author: "App Academy",
-    thumbnail: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c",
-    duration: "2:00:00",
-    likes: "10K",
-    rating: "4.6",
-    students: "2.1K",
-    type: "Course",
-    category: "Tech",
-    contentType: "course"
-  }
-];
+import toast from 'react-hot-toast';
 
 export default function CourseGrid() {
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const filteredCourses = courses.filter(course => 
-    selectedCategory === 'All' ? true : course.category === selectedCategory
-  );
+  const observer = useRef();
+  const lastCourseElementRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
+
+  const fetchCourses = async (pageNum = 1, shouldAppend = false) => {
+    try {
+      const response = await fetch(
+        `/api/courses?page=${pageNum}&limit=12${
+          selectedCategory !== 'All' ? `&category=${selectedCategory}` : ''
+        }`
+      );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch courses');
+      }
+
+      setCourses(prev => shouldAppend ? [...prev, ...data.data] : data.data);
+      setHasMore(data.pagination.hasMore);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      toast.error('Failed to fetch courses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset and fetch when category changes
+  useEffect(() => {
+    setPage(1);
+    setCourses([]);
+    setHasMore(true);
+    setLoading(true);
+    fetchCourses(1, false);
+  }, [selectedCategory]);
+
+  // Fetch more data when page changes
+  useEffect(() => {
+    if (page > 1) {
+      setLoading(true);
+      fetchCourses(page, true);
+    }
+  }, [page]);
+
+  if (loading && page === 1) {
+    return (
+      <div className="text-center py-8">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+        <p className="mt-2 text-gray-300">Loading courses...</p>
+      </div>
+    );
+  }
+
+  if (error && page === 1) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-300 text-lg">
+          No courses available in {selectedCategory} category
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -76,12 +103,13 @@ export default function CourseGrid() {
       />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <AnimatePresence mode="popLayout">
-          {filteredCourses.map((course, index) => (
+          {courses.map((course, index) => (
             <Link 
-              key={course.id} 
-              href={`/content/course/${course.id}`}
+              key={course._id} 
+              href={`/content/course/${course._id}`}
             >
               <motion.div
+                ref={index === courses.length - 1 ? lastCourseElementRef : null}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -92,21 +120,25 @@ export default function CourseGrid() {
                 {/* Thumbnail */}
                 <div className="relative aspect-video">
                   <img
-                    src={course.thumbnail}
+                    src={course.thumbnailURL}
                     alt={course.title}
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60"></div>
-                  <div className="absolute top-2 right-2 bg-red-500 text-white text-sm px-2 py-1 rounded-full flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span>{course.rating}</span>
-                  </div>
-                  <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-sm px-2 py-1 rounded">
-                    <div className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>{course.duration}</span>
+                  {course.rating && (
+                    <div className="absolute top-2 right-2 bg-red-500 text-white text-sm px-2 py-1 rounded-full flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-current" />
+                      <span>{course.rating}</span>
                     </div>
-                  </div>
+                  )}
+                  {course.duration && (
+                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-sm px-2 py-1 rounded">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        <span>{course.duration}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
@@ -114,16 +146,24 @@ export default function CourseGrid() {
                   <h3 className="font-semibold text-gray-100 mb-2 line-clamp-2 group-hover:text-red-400">
                     {course.title}
                   </h3>
-                  <p className="text-gray-400 text-sm mb-3">{course.author}</p>
+                  <p className="text-gray-400 text-sm mb-3">
+                    {course.creator?.name || 'Anonymous'}
+                  </p>
                   
                   <div className="flex items-center justify-between text-sm text-gray-400">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-4 h-4" />
-                      <span>{course.students} students</span>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4" />
+                        <span>{course.students} students</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageCircle className="w-4 h-4" />
+                        <span>{course.commentsCount}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <ThumbsUp className="w-4 h-4" />
-                      <span>{course.likes}</span>
+                      <span>{course.likesCount}</span>
                     </div>
                   </div>
                 </div>
@@ -132,6 +172,19 @@ export default function CourseGrid() {
           ))}
         </AnimatePresence>
       </div>
+
+      {loading && page > 1 && (
+        <div className="text-center py-4">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-3 border-blue-500 border-t-transparent"></div>
+          <p className="mt-2 text-gray-300">Loading more courses...</p>
+        </div>
+      )}
+
+      {!loading && !hasMore && courses.length > 0 && (
+        <div className="text-center py-4">
+          <p className="text-gray-300">No more courses to load</p>
+        </div>
+      )}
     </div>
   );
 } 

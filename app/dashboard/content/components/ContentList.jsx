@@ -156,7 +156,7 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
         );
     }
 
-    return (
+  return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredContents.map((content, index) => (
@@ -199,7 +199,7 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
                             {content.categories.length > 2 && (
                                 <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
                                     +{content.categories.length - 2}
-                                </span>
+                  </span>
                             )}
                         </div>
 
@@ -221,17 +221,17 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
                                     title="Edit Content"
                                 >
                                     <Edit size={18} />
-                                </button>
+                    </button>
                                 <button
                                     onClick={() => openDeleteModal(content._id, content.title)}
                                     className="p-1 text-red-600 hover:text-red-800 transition-colors"
                                     title="Delete Content"
                                 >
-                                    <Trash2 size={18} />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+      </div>
+    </div>
                 ))}
             </div>
 

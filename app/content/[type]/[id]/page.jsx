@@ -18,6 +18,7 @@ import CourseContent from '../../course/_components/CourseContent';
 import { useUser } from '@clerk/nextjs';
 import toast from 'react-hot-toast';
 import ArticleView from '../../article/_components/ArticleView';
+import ImageView from '../../image/_components/ImageView';
 
 export default function ContentPage() {
   const params = useParams();
@@ -30,20 +31,27 @@ export default function ContentPage() {
   // Fetch content data
   const fetchContent = async () => {
     try {
-      const response = await fetch(`/api/content/${params.id}`);
+      // Use the appropriate endpoint based on content type
+      const endpoint = params.type === 'course' 
+        ? `/api/content/course/${params.id}`
+        : params.type === 'image'
+        ? `/api/content/image/${params.id}`
+        : `/api/content/${params.id}`;
+
+      const response = await fetch(endpoint);
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch content');
       }
 
-      // Add isLiked status
-      const contentWithLikeStatus = {
+      // Add content type to the data
+      const contentWithType = {
         ...data.data,
-        isLiked: user ? data.data.likes.some(like => like.userId === user.id) : false
+        contentType: params.type
       };
 
-      setContent(contentWithLikeStatus);
+      setContent(contentWithType);
 
       // Fetch related content
       const relatedResponse = await fetch(
@@ -172,6 +180,8 @@ export default function ContentPage() {
               <div className="lg:col-span-2">
                 {content.contentType === 'article' ? (
                   <ArticleView article={content} />
+                ) : content.contentType === 'image' ? (
+                  <ImageView image={content} />
                 ) : (
                   <>
                     {/* Content Preview */}
