@@ -6,24 +6,53 @@ import type { NextRequest } from "next/server";
 // Please edit this to allow other routes to be public as needed.
 // See https://clerk.com/docs/references/nextjs/auth-middleware for more information about configuring your middleware
 export default authMiddleware({
-    publicRoutes: ["/api/health", "/api"],
+    // Public routes that don't require authentication or verification
+    publicRoutes: [
+        "/api/health",
+        "/api",
+        "/sign-in",
+        "/sign-up",
+        "/"
+    ],
     async afterAuth(auth, req) {
-        // Handle after-auth logic
-        if (auth.userId && !req.url.includes('/verify')) {
-            try {
-                const verifyResponse = await fetch(`${req.nextUrl.origin}/api/verify`, {
-                    headers: {
-                        'Authorization': req.headers.get('Authorization') || '',
-                    }
-                });
-                
-                const data = await verifyResponse.json();
-                
-                if (!data.data.isVerified) {
-                    return NextResponse.redirect(new URL('/verify', req.url));
+        // Get the current path
+        const url = new URL(req.url);
+        const path = url.pathname;
+
+        // Skip verification check for public routes and verify page
+        if (!auth.userId || 
+            path.startsWith('/api') || 
+            path === '/verify' || 
+            path === '/sign-in' || 
+            path === '/sign-up') {
+            return;
+        }
+
+        // Check verification status for authenticated users
+        try {
+            const verifyResponse = await fetch(`${url.origin}/api/verify`, {
+                headers: {
+                    'Authorization': `Bearer ${auth.sessionId}`,
+                    'Content-Type': 'application/json'
                 }
-            } catch (error) {
-                console.error('Error checking verification:', error);
+            });
+
+            if (!verifyResponse.ok) {
+                throw new Error('Failed to check verification status');
+            }
+
+            const data = await verifyResponse.json();
+
+            // If user is not verified and not already on verify page, redirect to verify
+            if (!data.data.isVerified && path !== '/verify') {
+                return NextResponse.redirect(new URL('/verify', req.url));
+            }
+
+        } catch (error) {
+            console.error('Error checking verification status:', error);
+            // On error, redirect to verify page as a safety measure
+            if (path !== '/verify') {
+                return NextResponse.redirect(new URL('/verify', req.url));
             }
         }
     }
