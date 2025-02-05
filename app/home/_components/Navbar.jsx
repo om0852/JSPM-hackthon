@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Search } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserButton } from "@clerk/nextjs"
 import { searchContent } from "../../utils/search"
-import SearchResults from './SearchResults'
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+// Dynamically import SearchResults
+const SearchResults = dynamic(() => import('./SearchResults'), { ssr: false });
+
 function Navbar({ selectedFilter, onFilterChange }) {
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -19,17 +23,23 @@ function Navbar({ selectedFilter, onFilterChange }) {
   const filters = ['All', 'Articles', 'Videos', 'Courses', 'Images'];
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setIsSearchFocused(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (mounted) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [mounted]);
 
-  const handleSearch = (e) => {
+  const handleSearch = useCallback((e) => {
     const query = e.target.value;
     setSearchQuery(query);
     
@@ -39,9 +49,9 @@ function Navbar({ selectedFilter, onFilterChange }) {
     } else {
       setSearchResults([]);
     }
-  };
+  }, []);
 
-  const handleSearchSubmit = (e) => {
+  const handleSearchSubmit = useCallback((e) => {
     e.preventDefault();
     if (searchQuery.trim() && searchResults.length > 0) {
       const firstResult = searchResults[0];
@@ -50,16 +60,21 @@ function Navbar({ selectedFilter, onFilterChange }) {
       setSearchResults([]);
       setIsSearchFocused(false);
     }
-  };
+  }, [searchQuery, searchResults, router]);
 
-  const handleCloseSearch = () => {
+  const handleCloseSearch = useCallback(() => {
     setSearchQuery('');
     setSearchResults([]);
     setIsSearchFocused(false);
-  };
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <motion.div 
+      key="navbar-container"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-gray-900 border-b border-gray-800 shadow-lg"

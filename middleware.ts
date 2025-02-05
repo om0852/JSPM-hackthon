@@ -19,16 +19,33 @@ export default authMiddleware({
         const url = new URL(req.url);
         const path = url.pathname;
 
-        // Skip verification check for public routes and verify page
+        // Skip verification check for public routes
         if (!auth.userId || 
             path.startsWith('/api') || 
-            path === '/verify' || 
             path === '/sign-in' || 
             path === '/sign-up') {
             return;
         }
 
-        // Check verification status for authenticated users
+        // Get verification status from cookies
+        const isVerified = req.cookies.get('isVerified')?.value;
+        const userType = req.cookies.get('userType')?.value;
+
+        // If we're on the verify page
+        if (path === '/verify') {
+            // If user is verified, redirect to home
+            if (isVerified === 'true') {
+                return NextResponse.redirect(new URL('/home', req.url));
+            }
+            return;
+        }
+
+        // If user is verified (from cookie), allow access
+        if (isVerified === 'true') {
+            return;
+        }
+
+        // If no cookie or not verified, check API
         try {
             const verifyResponse = await fetch(`${url.origin}/api/verify`, {
                 headers: {

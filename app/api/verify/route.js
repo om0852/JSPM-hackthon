@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '../../lib/mongodb';
 import User from '../../models/User';
 import { currentUser } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 
 export async function POST(req) {
     try {
@@ -68,11 +69,29 @@ export async function POST(req) {
             })
         });
 
-        return NextResponse.json({
+        // Create response with cookie
+        const response = NextResponse.json({
             status: 'success',
             message: 'User verified successfully',
             data: userData
         });
+
+        // Set verification cookie
+        response.cookies.set('isVerified', 'true', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 // 30 days
+        });
+
+        response.cookies.set('userType', userType, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 // 30 days
+        });
+
+        return response;
 
     } catch (error) {
         console.error('API Error:', error);
@@ -100,7 +119,7 @@ export async function GET(req) {
 
         const userData = await User.findOne({ userId: user.id });
         
-        return NextResponse.json({
+        const response = NextResponse.json({
             status: 'success',
             data: {
                 isVerified: userData?.isVerified || false,
@@ -108,6 +127,24 @@ export async function GET(req) {
                 walletAddress: userData?.walletAddress
             }
         });
+
+        // Update cookies based on verification status
+        if (userData?.isVerified) {
+            response.cookies.set('isVerified', 'true', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 30 * 24 * 60 * 60 // 30 days
+            });
+            response.cookies.set('userType', userData.userType, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                maxAge: 30 * 24 * 60 * 60 // 30 days
+            });
+        }
+
+        return response;
 
     } catch (error) {
         console.error('API Error:', error);

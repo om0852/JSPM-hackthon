@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, ThumbsUp } from 'lucide-react';
+import { Clock, ThumbsUp, Play, MessageCircle, Crown, Star, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import CategoryMenu from './CategoryMenu';
 import toast from 'react-hot-toast';
 
 const allContent = [
@@ -67,6 +69,25 @@ const allContent = [
     type: "Video"
   }
 ];
+
+// Subscription badge configurations
+const subscriptionBadges = {
+  free: {
+    icon: Star,
+    text: 'Free',
+    className: 'bg-green-900 text-green-200 border border-green-700'
+  },
+  basic: {
+    icon: Sparkles,
+    text: 'Basic',
+    className: 'bg-blue-900 text-blue-200 border border-blue-700'
+  },
+  premium: {
+    icon: Crown,
+    text: 'Premium',
+    className: 'bg-purple-900 text-purple-200 border border-purple-700'
+  }
+};
 
 export default function AllContentGrid({ filter }) {
   const [contents, setContents] = useState([]);
@@ -163,16 +184,31 @@ export default function AllContentGrid({ filter }) {
             ref={index === contents.length - 1 ? lastContentElementRef : null}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="bg-gray-800 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300"
+            transition={{ delay: index * 0.1 }}
+            className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border border-gray-700"
           >
-            <div className="relative pb-[56.25%]">
+            <div className="relative">
               <img
                 src={content.thumbnailURL || '/placeholder-image.jpg'}
                 alt={content.title}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
               />
+              <div className="absolute top-2 right-2 flex gap-2">
+                {/* Subscription Badge */}
+                {content.subscriptionTier && (
+                  <div className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 ${
+                    subscriptionBadges[content.subscriptionTier].className
+                  }`}>
+                    {React.createElement(subscriptionBadges[content.subscriptionTier].icon, {
+                      className: "w-3 h-3"
+                    })}
+                    <span>{subscriptionBadges[content.subscriptionTier].text}</span>
+                  </div>
+                )}
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent opacity-60"></div>
             </div>
+
             <div className="p-4">
               <h3 className="text-lg font-semibold text-gray-100 mb-2 line-clamp-2">
                 {content.title}
@@ -180,22 +216,23 @@ export default function AllContentGrid({ filter }) {
               <p className="text-gray-400 text-sm mb-3 line-clamp-2">
                 {content.description}
               </p>
-              <div className="flex flex-wrap gap-2">
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  content.contentType === 'video' ? 'bg-blue-900 text-blue-200' :
-                  content.contentType === 'article' ? 'bg-green-900 text-green-200' :
-                  content.contentType === 'course' ? 'bg-purple-900 text-purple-200' :
-                  'bg-gray-700 text-gray-200'
-                }`}>
-                  {content.contentType}
-                </span>
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  content.subscriptionTier === 'premium' ? 'bg-yellow-900 text-yellow-200' :
-                  content.subscriptionTier === 'basic' ? 'bg-orange-900 text-orange-200' :
-                  'bg-gray-700 text-gray-200'
-                }`}>
-                  {content.subscriptionTier}
-                </span>
+              
+              <div className="flex items-center justify-between text-sm text-gray-400">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-1">
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{content.commentsCount || 0}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ThumbsUp className="w-4 h-4" />
+                    <span>{content.likesCount || 0}</span>
+                  </div>
+                </div>
+                {content.price > 0 && (
+                  <div className="text-white font-semibold">
+                    ${content.price}
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>

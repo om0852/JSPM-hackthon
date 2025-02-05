@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -12,9 +13,14 @@ import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 const Sidebar = () => {
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { signOut } = useClerk();
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const routes = [
     {
@@ -38,6 +44,10 @@ const Sidebar = () => {
     await signOut();
     router.push("/sign-in");
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Wallet, User, PenTool } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
+import Cookies from 'js-cookie';
 
 export default function VerifyPage() {
   const [account, setAccount] = useState('');
@@ -16,13 +17,25 @@ export default function VerifyPage() {
   // Check verification status on load
   useEffect(() => {
     const checkVerification = async () => {
+      // Check cookie first
+      const isVerified = Cookies.get('isVerified');
+      if (isVerified === 'true') {
+        console.log('User is verified (from cookie), redirecting...');
+        toast.success('Already verified! Redirecting...');
+        window.location.href = '/home';
+        return;
+      }
+
       try {
+        console.log('Checking initial verification status...');
         const response = await fetch('/api/verify');
         const data = await response.json();
+        console.log('Initial verification response:', data);
 
         if (response.ok && data.data.isVerified) {
+          console.log('User is already verified, redirecting...');
           toast.success('Already verified! Redirecting...');
-          setTimeout(() => router.push('/'), 1500);
+          window.location.href = '/home';
         } else {
           toast('Please complete verification', {
             icon: '👋',
@@ -37,7 +50,7 @@ export default function VerifyPage() {
     };
 
     checkVerification();
-  }, [router]);
+  }, []);
 
   // Check if MetaMask is installed
   const checkMetaMaskInstalled = () => {
@@ -84,6 +97,7 @@ export default function VerifyPage() {
     const verifyToast = toast.loading('Verifying your account...');
 
     try {
+      console.log('Submitting verification...');
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: {
@@ -96,13 +110,17 @@ export default function VerifyPage() {
       });
 
       const data = await response.json();
+      console.log('Verification submission response:', data);
 
       if (response.ok) {
         toast.success('Verification successful! Redirecting...', {
           id: verifyToast,
           duration: 2000
         });
-        setTimeout(() => router.push('/'), 2000);
+        // Use timeout to ensure toast is shown before redirect
+        setTimeout(() => {
+          window.location.href = '/home';
+        }, 1000);
       } else {
         throw new Error(data.message || 'Verification failed');
       }
