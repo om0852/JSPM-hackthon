@@ -1,19 +1,23 @@
 'use client';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Filter } from 'lucide-react';
 import ContentList from './components/ContentList';
 import CreateContentModal from './components/CreateContentModal';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 
 export default function ContentPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [contents, setContents] = useState([]);
   const [editingContent, setEditingContent] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshContents = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
 
   const handleContentCreated = (newContent) => {
-    setContents(prev => [newContent, ...prev]);
+    refreshContents();
     setIsModalOpen(false);
     setEditingContent(null);
   };
@@ -26,6 +30,14 @@ export default function ContentPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingContent(null);
+  };
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleContentDeleted = () => {
+    refreshContents();
   };
 
   return (
@@ -85,23 +97,32 @@ export default function ContentPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex items-center space-x-4 bg-white/70 backdrop-blur-sm p-4 rounded-xl shadow-sm border border-gray-100"
+        className="flex items-center space-x-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4"
       >
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Search content..."
+            placeholder="Search by title, description, type, or category..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+            onChange={handleSearch}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+              bg-white transition-all duration-200"
           />
         </div>
-        <select className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white/50 backdrop-blur-sm transition-all duration-200">
-          <option value="all">All Content</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-        </select>
+        <div className="flex items-center space-x-2">
+          <Filter size={20} className="text-gray-400" />
+          <select 
+            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900
+              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+              bg-white transition-all duration-200"
+          >
+            <option value="all">All Content</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
       </motion.div>
 
       {/* Content List */}
@@ -113,6 +134,8 @@ export default function ContentPage() {
         <ContentList 
           searchQuery={searchQuery}
           onEdit={handleEdit}
+          onDelete={handleContentDeleted}
+          refreshTrigger={refreshTrigger}
         />
       </motion.div>
 
