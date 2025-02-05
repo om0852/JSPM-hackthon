@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ThumbsUp, BookOpen, Star } from 'lucide-react';
+import CategoryMenu from './CategoryMenu';
 
 const courses = [
   {
@@ -13,7 +15,8 @@ const courses = [
     likes: "12K",
     rating: "4.8",
     students: "2.5K",
-    type: "Course"
+    type: "Course",
+    category: "Tech"
   },
   {
     id: 2,
@@ -24,7 +27,8 @@ const courses = [
     likes: "18K",
     rating: "4.9",
     students: "3.2K",
-    type: "Course"
+    type: "Course",
+    category: "Art"
   },
   {
     id: 3,
@@ -35,7 +39,8 @@ const courses = [
     likes: "15K",
     rating: "4.7",
     students: "1.8K",
-    type: "Course"
+    type: "Course",
+    category: "Education"
   },
   {
     id: 4,
@@ -46,65 +51,78 @@ const courses = [
     likes: "10K",
     rating: "4.6",
     students: "2.1K",
-    type: "Course"
+    type: "Course",
+    category: "Tech"
   }
 ];
 
 export default function CourseGrid() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <AnimatePresence mode="popLayout">
-        {courses.map((course, index) => (
-          <motion.div
-            key={course.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ delay: index * 0.1 }}
-            layout
-            className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border border-gray-700"
-          >
-            {/* Thumbnail */}
-            <div className="relative aspect-video">
-              <img
-                src={course.thumbnail}
-                alt={course.title}
-                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60"></div>
-              <div className="absolute top-2 right-2 bg-red-500 text-white text-sm px-2 py-1 rounded-full flex items-center gap-1">
-                <Star className="w-4 h-4 fill-current" />
-                <span>{course.rating}</span>
-              </div>
-              <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-sm px-2 py-1 rounded">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>{course.duration}</span>
-                </div>
-              </div>
-            </div>
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-            {/* Content */}
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-100 mb-2 line-clamp-2 group-hover:text-red-400">
-                {course.title}
-              </h3>
-              <p className="text-gray-400 text-sm mb-3">{course.author}</p>
-              
-              <div className="flex items-center justify-between text-sm text-gray-400">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span>{course.students} students</span>
+  const filteredCourses = courses.filter(course => 
+    selectedCategory === 'All' ? true : course.category === selectedCategory
+  );
+
+  return (
+    <div>
+      <CategoryMenu 
+        selectedCategory={selectedCategory}
+        onCategoryChange={setSelectedCategory}
+      />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AnimatePresence mode="popLayout">
+          {filteredCourses.map((course, index) => (
+            <motion.div
+              key={course.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ delay: index * 0.1 }}
+              layout
+              className="bg-gray-800 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-200 cursor-pointer group border border-gray-700"
+            >
+              {/* Thumbnail */}
+              <div className="relative aspect-video">
+                <img
+                  src={course.thumbnail}
+                  alt={course.title}
+                  className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60"></div>
+                <div className="absolute top-2 right-2 bg-red-500 text-white text-sm px-2 py-1 rounded-full flex items-center gap-1">
+                  <Star className="w-4 h-4 fill-current" />
+                  <span>{course.rating}</span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <ThumbsUp className="w-4 h-4" />
-                  <span>{course.likes}</span>
+                <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-sm px-2 py-1 rounded">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    <span>{course.duration}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        ))}
-      </AnimatePresence>
+
+              {/* Content */}
+              <div className="p-4">
+                <h3 className="font-semibold text-gray-100 mb-2 line-clamp-2 group-hover:text-red-400">
+                  {course.title}
+                </h3>
+                <p className="text-gray-400 text-sm mb-3">{course.author}</p>
+                
+                <div className="flex items-center justify-between text-sm text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    <span>{course.students} students</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ThumbsUp className="w-4 h-4" />
+                    <span>{course.likes}</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 } 

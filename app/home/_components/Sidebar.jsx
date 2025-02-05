@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { 
   LayoutDashboard, 
   Settings, 
-  FileText 
+  FileText,
+  CreditCard
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -18,14 +19,19 @@ const Sidebar = () => {
       href: "/dashboard",
     },
     {
-      icon: Settings,
-      label: "Settings",
-      href: "/settings",
-    },
-    {
       icon: FileText,
       label: "Your Content",
       href: "/content",
+    },
+    {
+      icon: CreditCard,
+      label: "Manage Your Subscription",
+      href: "/subscription",
+    },
+    {
+      icon: Settings,
+      label: "Settings",
+      href: "/settings",
     },
   ];
 
@@ -41,11 +47,13 @@ const Sidebar = () => {
               key={route.href}
               href={route.href}
               className={`text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-gray-800 rounded-lg transition ${
-                pathname === route.href ? "text-white bg-gray-800" : "text-zinc-400"
+                route.className || ''
+              } ${
+                pathname === route.href ? "text-white bg-gray-800" : route.className ? "" : "text-zinc-400"
               }`}
             >
               <div className="flex items-center flex-1">
-                <route.icon className="h-5 w-5 mr-3" />
+                <route.icon className={`h-5 w-5 mr-3 ${route.className ? 'text-white' : ''}`} />
                 {route.label}
               </div>
             </Link>
