@@ -47,34 +47,34 @@ export async function POST(req) {
 
 export async function GET(req) {
     try {
-        // Get the authenticated user's ID
-        const user = await currentUser();
-        if (!user) {
-            return NextResponse.json({ 
-                status: 'error', 
-                message: 'Unauthorized' 
-            }, { status: 401 });
-        }
-
-        // Connect to database
-        await connectDB();
-
         // Get search parameters
         const { searchParams } = new URL(req.url);
-        const contentType = searchParams.get('type');
         const page = parseInt(searchParams.get('page')) || 1;
         const limit = parseInt(searchParams.get('limit')) || 10;
+        const type = searchParams.get('type');
+        const filter = searchParams.get('filter') || 'all';
 
-        // Build query
-        let query = { userId: user.id };
-        if (contentType) {
-            query.contentType = contentType;
+        await connectDB();
+
+        // Build query based on filters
+        let query = {};
+        
+        // Add content type filter if specified
+        if (type) {
+            query.contentType = type.toLowerCase();
+        }
+
+        // Add published/draft filter
+        if (filter === 'published') {
+            query.isPublished = true;
+        } else if (filter === 'draft') {
+            query.isPublished = false;
         }
 
         // Get total count for pagination
         const total = await Content.countDocuments(query);
 
-        // Get paginated content
+        // Get paginated and filtered content
         const contents = await Content.find(query)
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
@@ -87,7 +87,8 @@ export async function GET(req) {
                 total,
                 page,
                 limit,
-                pages: Math.ceil(total / limit)
+                pages: Math.ceil(total / limit),
+                hasMore: page * limit < total
             }
         });
 

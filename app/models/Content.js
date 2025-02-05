@@ -1,5 +1,29 @@
 import mongoose from 'mongoose';
 
+const CommentSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true, // Clerk user ID
+  },
+  userName: {
+    type: String,
+    required: true,
+  },
+  userImage: String,
+  text: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  }
+});
+
 const ContentSchema = new mongoose.Schema({
   userId: {
     type: String,
@@ -52,6 +76,22 @@ const ContentSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  likes: [{
+    userId: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  likesCount: {
+    type: Number,
+    default: 0
+  },
+  comments: [CommentSchema],
+  commentsCount: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -64,6 +104,16 @@ const ContentSchema = new mongoose.Schema({
 
 ContentSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  next();
+});
+
+ContentSchema.pre('save', function(next) {
+  if (this.isModified('likes')) {
+    this.likesCount = this.likes.length;
+  }
+  if (this.isModified('comments')) {
+    this.commentsCount = this.comments.length;
+  }
   next();
 });
 

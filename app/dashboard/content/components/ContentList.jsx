@@ -1,31 +1,50 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trash2, Edit, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrigger }) {
+export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrigger, filter = 'all' }) {
     const [contents, setContents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(true);
     const [deleteModal, setDeleteModal] = useState({
         isOpen: false,
         contentId: null,
         contentTitle: ''
     });
 
-    const fetchContents = async () => {
-        setLoading(true);
+    const observer = useRef();
+    const lastContentElementRef = useCallback(node => {
+        if (loading) return;
+        if (observer.current) observer.current.disconnect();
+        observer.current = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting && hasMore) {
+                setPage(prevPage => prevPage + 1);
+            }
+        });
+        if (node) observer.current.observe(node);
+    }, [loading, hasMore]);
+
+    const fetchContents = async (pageNum = 1, shouldAppend = false) => {
         try {
-            const response = await fetch('/api/content');
+            const response = await fetch(
+                `/api/content?page=${pageNum}&limit=10&filter=${filter}${
+                    searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''
+                }`
+            );
             const data = await response.json();
 
             if (!response.ok) {
                 throw new Error(data.message || 'Failed to fetch contents');
             }
 
-            setContents(data.data);
+            setContents(prev => shouldAppend ? [...prev, ...data.data] : data.data);
+            setHasMore(data.pagination.hasMore);
+            setError(null);
         } catch (err) {
             setError(err.message);
             toast.error('Failed to fetch contents');
@@ -34,10 +53,22 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
         }
     };
 
-    // Fetch contents on mount and when refreshTrigger changes
+    // Reset and fetch when filters change
     useEffect(() => {
-        fetchContents();
-    }, [refreshTrigger]);
+        setPage(1);
+        setContents([]);
+        setHasMore(true);
+        setLoading(true);
+        fetchContents(1, false);
+    }, [searchQuery, filter, refreshTrigger]);
+
+    // Fetch more data when page changes
+    useEffect(() => {
+        if (page > 1) {
+            setLoading(true);
+            fetchContents(page, true);
+        }
+    }, [page]);
 
     const filteredContents = contents.filter(content => {
         if (!searchQuery) return true;
@@ -88,25 +119,29 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
             setContents(prev => prev.filter(content => content._id !== contentId));
             toast.success('Content deleted successfully', { id: deleteToast });
             closeDeleteModal();
-            onDelete(); // Notify parent component about deletion
+            onDelete();
         } catch (err) {
             console.error('Error deleting content:', err);
             toast.error('Failed to delete content: ' + err.message, { id: deleteToast });
         }
     };
 
-    if (loading) return (
-        <div className="text-center py-8">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-            <p className="mt-2 text-gray-900">Loading contents...</p>
-        </div>
-    );
+    if (loading && page === 1) {
+        return (
+            <div className="text-center py-8">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                <p className="mt-2 text-gray-900">Loading contents...</p>
+            </div>
+        );
+    }
 
-    if (error) return (
-        <div className="text-center py-8">
-            <p className="text-red-500">{error}</p>
-        </div>
-    );
+    if (error && page === 1) {
+        return (
+            <div className="text-center py-8">
+                <p className="text-red-500">{error}</p>
+            </div>
+        );
+    }
 
     if (filteredContents.length === 0) {
         return (
@@ -124,9 +159,10 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
     return (
         <>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredContents.map((content) => (
+                {filteredContents.map((content, index) => (
                     <div 
-                        key={content._id} 
+                        key={content._id}
+                        ref={index === filteredContents.length - 1 ? lastContentElementRef : null}
                         className="bg-white rounded-lg shadow-md p-4 border border-gray-200 hover:shadow-lg transition-shadow duration-200"
                     >
                         {content.thumbnailURL && (
@@ -198,6 +234,19 @@ export default function ContentList({ searchQuery, onEdit, onDelete, refreshTrig
                     </div>
                 ))}
             </div>
+
+            {loading && page > 1 && (
+                <div className="text-center py-4">
+                    <div className="inline-block animate-spin rounded-full h-6 w-6 border-3 border-blue-500 border-t-transparent"></div>
+                    <p className="mt-2 text-gray-700">Loading more...</p>
+                </div>
+            )}
+
+            {!loading && !hasMore && contents.length > 0 && (
+                <div className="text-center py-4">
+                    <p className="text-gray-700">No more contents to load</p>
+                </div>
+            )}
 
             <DeleteConfirmationModal
                 isOpen={deleteModal.isOpen}
