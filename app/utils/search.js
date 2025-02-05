@@ -38,11 +38,75 @@ const courses = [
     students: "2.5K",
     type: "Course",
     category: "Tech",
-    contentType: "course"
+    contentType: "course",
+    price: "$89.99",
+    totalLessons: "45 lessons",
+    totalDuration: "15 hours",
+    level: "Beginner to Advanced",
+    lastUpdated: "January 2024",
+    description: "Master web development from scratch. Learn HTML, CSS, JavaScript, React, Node.js, and more. Build real-world projects and get hands-on experience.",
+    requirements: [
+      "Basic computer knowledge",
+      "No prior programming experience needed",
+      "A computer with internet connection"
+    ],
+    whatYouWillLearn: [
+      "Build responsive websites using HTML5 and CSS3",
+      "Master JavaScript and modern ES6+ features",
+      "Create full-stack applications with React and Node.js",
+      "Understand database design and implementation",
+      "Deploy applications to the cloud"
+    ],
+    curriculum: [
+      {
+        id: 1,
+        title: "Getting Started",
+        lessons: [
+          {
+            id: 1,
+            title: "Course Introduction",
+            duration: "5:20",
+            type: "video",
+            isCompleted: true,
+            isLocked: false
+          },
+          {
+            id: 2,
+            title: "Setting Up Your Development Environment",
+            duration: "15:45",
+            type: "video",
+            isCompleted: true,
+            isLocked: false
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "HTML & CSS Fundamentals",
+        lessons: [
+          {
+            id: 3,
+            title: "HTML Basics",
+            duration: "20:15",
+            type: "video",
+            isCompleted: false,
+            isLocked: false
+          },
+          {
+            id: 4,
+            title: "CSS Styling",
+            duration: "25:30",
+            type: "video",
+            isCompleted: false,
+            isLocked: false
+          }
+        ]
+      }
+    ]
   },
   {
     id: 2,
-    title: "UI/UX Design Principles",
+    title: "UI/UX Design Masterclass",
     author: "Design Masters",
     thumbnail: "https://images.unsplash.com/photo-1561070791-2526d30994b5",
     duration: "1:30:00",
@@ -50,8 +114,72 @@ const courses = [
     rating: "4.9",
     students: "3.2K",
     type: "Course",
-    category: "Art",
-    contentType: "course"
+    category: "Design",
+    contentType: "course",
+    price: "$69.99",
+    totalLessons: "35 lessons",
+    totalDuration: "12 hours",
+    level: "Intermediate",
+    lastUpdated: "February 2024",
+    description: "Learn professional UI/UX design. Master Figma, design principles, user research, prototyping, and create stunning user interfaces.",
+    requirements: [
+      "Basic design knowledge helpful but not required",
+      "Figma account (free)",
+      "Passion for design"
+    ],
+    whatYouWillLearn: [
+      "Master Figma for UI design",
+      "Understand UX principles and methodologies",
+      "Create high-fidelity prototypes",
+      "Conduct user research and testing",
+      "Build a professional design portfolio"
+    ],
+    curriculum: [
+      {
+        id: 1,
+        title: "Introduction to UI/UX",
+        lessons: [
+          {
+            id: 1,
+            title: "What is UI/UX Design",
+            duration: "10:30",
+            type: "video",
+            isCompleted: false,
+            isLocked: false
+          },
+          {
+            id: 2,
+            title: "Design Thinking Process",
+            duration: "15:20",
+            type: "video",
+            isCompleted: false,
+            isLocked: false
+          }
+        ]
+      },
+      {
+        id: 2,
+        title: "Figma Essentials",
+        lessons: [
+          {
+            id: 3,
+            title: "Figma Interface Overview",
+            duration: "20:15",
+            type: "video",
+            isCompleted: false,
+            isLocked: true
+          },
+          {
+            id: 4,
+            title: "Working with Components",
+            duration: "25:45",
+            type: "video",
+            isCompleted: false,
+            isLocked: true
+          }
+        ]
+      }
+    ]
   }
 ];
 

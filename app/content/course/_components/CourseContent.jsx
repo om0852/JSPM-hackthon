@@ -5,106 +5,12 @@ import { motion } from 'framer-motion';
 import { 
   PlayCircle, 
   ChevronDown, 
-  ChevronUp, 
   Clock, 
   CheckCircle,
-  LockClosed,
-  Download,
-  FileText
+  Lock,
+  FileText,
+  BookOpen
 } from 'lucide-react';
-
-const courseCurriculum = [
-  {
-    id: 1,
-    title: "Getting Started",
-    lessons: [
-      {
-        id: 1,
-        title: "Course Introduction",
-        duration: "5:20",
-        type: "video",
-        isCompleted: true,
-        isLocked: false
-      },
-      {
-        id: 2,
-        title: "Setting Up Your Development Environment",
-        duration: "15:45",
-        type: "video",
-        isCompleted: true,
-        isLocked: false
-      },
-      {
-        id: 3,
-        title: "Course Resources",
-        duration: "2 pages",
-        type: "document",
-        isCompleted: false,
-        isLocked: false
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: "Core Concepts",
-    lessons: [
-      {
-        id: 4,
-        title: "Understanding the Basics",
-        duration: "12:30",
-        type: "video",
-        isCompleted: false,
-        isLocked: false
-      },
-      {
-        id: 5,
-        title: "Practice Exercise 1",
-        duration: "30:00",
-        type: "exercise",
-        isCompleted: false,
-        isLocked: false
-      },
-      {
-        id: 6,
-        title: "Advanced Topics",
-        duration: "20:15",
-        type: "video",
-        isCompleted: false,
-        isLocked: true
-      }
-    ]
-  },
-  {
-    id: 3,
-    title: "Advanced Features",
-    lessons: [
-      {
-        id: 7,
-        title: "Advanced Implementation",
-        duration: "25:10",
-        type: "video",
-        isCompleted: false,
-        isLocked: true
-      },
-      {
-        id: 8,
-        title: "Best Practices",
-        duration: "18:45",
-        type: "video",
-        isCompleted: false,
-        isLocked: true
-      },
-      {
-        id: 9,
-        title: "Final Project",
-        duration: "45:00",
-        type: "exercise",
-        isCompleted: false,
-        isLocked: true
-      }
-    ]
-  }
-];
 
 export default function CourseContent({ course }) {
   const [expandedSections, setExpandedSections] = useState([1]);
@@ -125,14 +31,14 @@ export default function CourseContent({ course }) {
   };
 
   const getLessonIcon = (type, isLocked) => {
-    if (isLocked) return <LockClosed className="w-4 h-4" />;
+    if (isLocked) return <Lock className="w-4 h-4" />;
     switch (type) {
       case 'video':
         return <PlayCircle className="w-4 h-4" />;
       case 'document':
         return <FileText className="w-4 h-4" />;
       case 'exercise':
-        return <Download className="w-4 h-4" />;
+        return <BookOpen className="w-4 h-4" />;
       default:
         return <PlayCircle className="w-4 h-4" />;
     }
@@ -146,7 +52,7 @@ export default function CourseContent({ course }) {
         <div className="flex items-center gap-4 text-sm text-gray-400">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            <span>{course.duration} total</span>
+            <span>{course.totalDuration} total</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-500" />
@@ -157,7 +63,7 @@ export default function CourseContent({ course }) {
 
       {/* Course Sections */}
       <div className="divide-y divide-gray-700">
-        {courseCurriculum.map((section) => (
+        {course.curriculum.map((section) => (
           <div key={section.id}>
             {/* Section Header */}
             <button

@@ -18,6 +18,7 @@ import ContentNavbar from '../../_components/ContentNavbar';
 import { searchContent } from '../../../utils/search';
 import { useParams } from 'next/navigation';
 import CourseContent from '../../course/_components/CourseContent';
+import CourseOverview from '../../course/_components/CourseOverview';
 
 export default function ContentPage() {
   const params = useParams();
@@ -158,6 +159,18 @@ export default function ContentPage() {
                       </motion.button>
                     </div>
                   )}
+                  {content.contentType === 'course' && (
+                    <div className="absolute bottom-4 right-4">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2"
+                      >
+                        <span className="font-semibold">{content.price}</span>
+                        <span>•</span>
+                        <span>Enroll Now</span>
+                      </motion.button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Content Info */}
@@ -222,14 +235,15 @@ export default function ContentPage() {
                     </div>
                   </div>
 
-                  {/* Course Content Section */}
+                  {/* Course Content */}
                   {content.contentType === 'course' && (
-                    <div className="mt-6">
+                    <div className="space-y-6">
+                      <CourseOverview course={content} />
                       <CourseContent course={content} />
                     </div>
                   )}
 
-                  {/* Article Content Section */}
+                  {/* Article Content */}
                   {content.contentType === 'article' && (
                     <div className="mb-6 p-4 bg-gray-800 rounded-xl">
                       <p className="text-gray-300 leading-relaxed">
