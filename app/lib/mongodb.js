@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const MONGODB_URI =
-  "mongodb+srv://smartcoder0852:zVWbXMnVgt7dnP0U@cluster0.lfofxmp.mongodb.net/primastore";
+  "mongodb+srv://smartcoder0852:zVWbXMnVgt7dnP0U@cluster0.lfofxmp.mongodb.net/blocktube";
 
 if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable");
