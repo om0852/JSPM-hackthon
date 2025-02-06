@@ -16,7 +16,7 @@ import ContentNavbar from '../../_components/ContentNavbar';
 import { useParams } from 'next/navigation';
 import CourseContent from '../../course/_components/CourseContent';
 import { useUser } from '@clerk/nextjs';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import ArticleView from '../../article/_components/ArticleView';
 import ImageView from '../../image/_components/ImageView';
 
@@ -151,6 +151,28 @@ export default function ContentPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         <ContentNavbar />
         <div className="flex pt-16">
           <div className="w-64 flex-shrink-0 fixed left-0 top-16 bottom-0">
@@ -171,6 +193,28 @@ export default function ContentPage() {
   if (!content) {
     return (
       <div className="min-h-screen bg-gray-900">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         <ContentNavbar />
         <div className="flex pt-16">
           <div className="w-64 flex-shrink-0 fixed left-0 top-16 bottom-0">
@@ -191,6 +235,28 @@ export default function ContentPage() {
 
   return (
     <div className="min-h-screen bg-gray-900">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#EF4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <ContentNavbar />
       <div className="flex pt-16">
         <div className="w-64 flex-shrink-0 fixed left-0 top-16 bottom-0">
