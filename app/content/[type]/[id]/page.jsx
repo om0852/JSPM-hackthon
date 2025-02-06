@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ThumbsUp, 
   Share2, 
@@ -9,7 +9,10 @@ import {
   Clock, 
   Users,
   Star,
-  MessageCircle
+  MessageCircle,
+  Twitter,
+  Facebook,
+  Link as LinkIcon
 } from 'lucide-react';
 import Sidebar from '../../../home/_components/Sidebar';
 import ContentNavbar from '../../_components/ContentNavbar';
@@ -28,6 +31,8 @@ export default function ContentPage() {
   const [relatedContent, setRelatedContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [likeInProgress, setLikeInProgress] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
 
   // Fetch content data
   const fetchContent = async () => {
@@ -53,6 +58,8 @@ export default function ContentPage() {
       };
 
       setContent(contentWithType);
+      setIsLiked(data.data.isLiked || false);
+      setLikesCount(data.data.likesCount || 0);
 
       // Fetch related content
       const relatedResponse = await fetch(
@@ -90,54 +97,83 @@ export default function ContentPage() {
       return;
     }
 
+    if (likeInProgress) return;
+
     try {
-      const response = await fetch(`/api/content/${content._id}/like`, {
-        method: 'POST'
+      setLikeInProgress(true);
+      // Optimistic update
+      setIsLiked(!isLiked);
+      setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+
+      const response = await fetch(`/api/content/${params.id}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to process like');
+        // Revert optimistic update if request fails
+        setIsLiked(!isLiked);
+        setLikesCount(prev => isLiked ? prev + 1 : prev - 1);
+        throw new Error(data.message || 'Failed to update like');
       }
 
-      setContent(prev => ({
-        ...prev,
-        likesCount: data.likesCount,
-        isLiked: data.isLiked
-      }));
+      // Show success animation
+      toast.success(isLiked ? 'Removed from likes' : 'Added to likes', {
+        icon: isLiked ? '💔' : '❤️'
+      });
 
-      toast.success(data.message);
+      // Update state with actual server response
+      setIsLiked(data.isLiked);
+      setLikesCount(data.likesCount);
     } catch (error) {
-      console.error('Error liking content:', error);
-      toast.error('Failed to process like');
+      console.error('Error updating like:', error);
+      toast.error(error.message || 'Failed to update like');
+    } finally {
+      setLikeInProgress(false);
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = async (platform = 'copy') => {
+    const shareUrl = window.location.href;
+    const shareTitle = content?.title || 'Check out this content';
+    const shareText = content?.description || 'Interesting content from DecentralHub';
+
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Copied to clipboard!', {
-        icon: '📋',
-        style: {
-          background: '#363636',
-          color: '#fff',
-          borderRadius: '10px',
-          border: '1px solid #4B5563',
-        },
-        duration: 2000,
-      });
+      switch (platform) {
+        case 'twitter':
+          window.open(
+            `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareTitle)}&url=${encodeURIComponent(shareUrl)}`,
+            '_blank'
+          );
+          toast.success('Opening Twitter to share');
+          break;
+
+        case 'facebook':
+          window.open(
+            `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+            '_blank'
+          );
+          toast.success('Opening Facebook to share');
+          break;
+
+        case 'copy':
+        default:
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success('Link copied to clipboard!', {
+            icon: '📋',
+            style: {
+              borderRadius: '10px',
+            },
+          });
+          break;
+      }
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      toast.error('Failed to copy link', {
-        icon: '❌',
-        style: {
-          background: '#363636',
-          color: '#fff',
-          borderRadius: '10px',
-          border: '1px solid #4B5563',
-        },
-      });
+      console.error('Error sharing content:', error);
+      toast.error('Failed to share content');
     }
   };
 
@@ -268,9 +304,9 @@ export default function ContentPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Content */}
               <div className="lg:col-span-2">
-                {content.contentType === 'article' ? (
+                {params.type === 'article' ? (
                   <ArticleView article={content} />
-                ) : content.contentType === 'image' ? (
+                ) : params.type === 'image' ? (
                   <ImageView image={content} />
                 ) : (
                   <>
@@ -281,7 +317,7 @@ export default function ContentPage() {
                         alt={content.title}
                         className="w-full h-full object-cover"
                       />
-                      {content.contentType === 'video' && (
+                      {params.type === 'video' && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <motion.button
                             whileHover={{ scale: 1.1 }}
@@ -292,7 +328,7 @@ export default function ContentPage() {
                           </motion.button>
                         </div>
                       )}
-                      {content.contentType === 'image' && (
+                      {params.type === 'image' && (
                         <div className="absolute bottom-4 right-4">
                           <motion.button
                             whileHover={{ scale: 1.05 }}
@@ -313,13 +349,13 @@ export default function ContentPage() {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2 text-gray-400">
-                            {content.contentType === 'video' && (
+                            {params.type === 'video' && (
                               <>
                                 <Users className="w-4 h-4" />
                                 <span>{content.views} views</span>
                               </>
                             )}
-                            {content.contentType === 'course' && (
+                            {params.type === 'course' && (
                               <>
                                 <Users className="w-4 h-4" />
                                 <span>{content.students || 0} students</span>
@@ -332,25 +368,67 @@ export default function ContentPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
-                          <button
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             onClick={handleLike}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                              content.isLiked
+                            disabled={likeInProgress || !user}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-200 ${
+                              isLiked
                                 ? 'bg-red-500 text-white'
                                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                            } transition-colors`}
-                            disabled={!user}
+                            } ${likeInProgress ? 'opacity-50 cursor-not-allowed' : ''}`}
                           >
-                            <ThumbsUp className={`w-4 h-4 ${content.isLiked ? 'fill-current' : ''}`} />
-                            <span>{content.likesCount || 0}</span>
-                          </button>
-                          <button 
-                            onClick={handleShare}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            <span>Share</span>
-                          </button>
+                            <ThumbsUp 
+                              className={`w-4 h-4 transition-transform duration-200 ${
+                                isLiked ? 'fill-current scale-110' : ''
+                              }`} 
+                            />
+                            <span>{likesCount}</span>
+                          </motion.button>
+
+                          <div className="relative group">
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-all duration-200"
+                            >
+                              <Share2 className="w-4 h-4" />
+                              <span>Share</span>
+                            </motion.button>
+
+                            {/* Share options dropdown */}
+                            <AnimatePresence>
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 10 }}
+                                className="absolute right-0 mt-2 py-2 w-48 bg-gray-800 rounded-xl shadow-xl border border-gray-700 hidden group-hover:block"
+                              >
+                                <button
+                                  onClick={() => handleShare('copy')}
+                                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                                >
+                                  <LinkIcon className="w-4 h-4" />
+                                  Copy Link
+                                </button>
+                                <button
+                                  onClick={() => handleShare('twitter')}
+                                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                                >
+                                  <Twitter className="w-4 h-4" />
+                                  Share on Twitter
+                                </button>
+                                <button
+                                  onClick={() => handleShare('facebook')}
+                                  className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                                >
+                                  <Facebook className="w-4 h-4" />
+                                  Share on Facebook
+                                </button>
+                              </motion.div>
+                            </AnimatePresence>
+                          </div>
                         </div>
                       </div>
 

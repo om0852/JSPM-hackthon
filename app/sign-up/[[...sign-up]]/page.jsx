@@ -17,13 +17,19 @@ export default function Page() {
 
   // Handle the completion of sign-up
   useEffect(() => {
-    if (isLoaded && signUp?.status === 'complete') {
+    if (!isLoaded) return;
+    
+    if (signUp?.status === 'complete') {
       saveUserDetails(
-        signUp.userData?.emailAddress,
-        signUp.userData?.username
+        signUp.emailAddress,
+        signUp.username
       ).catch(console.error);
     }
   }, [isLoaded, signUp?.status]);
+
+  if (!isLoaded) {
+    return null; // or a loading spinner
+  }
 
   return (
     <>
