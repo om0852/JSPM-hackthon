@@ -14,6 +14,34 @@ export default function ContentPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { user, isLoaded } = useUser();
 
+  const refreshContents = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  const handleContentCreated = useCallback((newContent) => {
+    refreshContents();
+    setIsModalOpen(false);
+    setEditingContent(null);
+  }, [refreshContents]);
+
+  const handleEdit = useCallback((content) => {
+    setEditingContent(content);
+    setIsModalOpen(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setEditingContent(null);
+  }, []);
+
+  const handleSearch = useCallback((e) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleContentDeleted = useCallback(() => {
+    refreshContents();
+  }, [refreshContents]);
+
   // Show loading state while user data is being fetched
   if (!isLoaded) {
     return (
@@ -32,34 +60,6 @@ export default function ContentPage() {
       </div>
     );
   }
-
-  const refreshContents = useCallback(() => {
-    setRefreshTrigger(prev => prev + 1);
-  }, []);
-
-  const handleContentCreated = (newContent) => {
-    refreshContents();
-    setIsModalOpen(false);
-    setEditingContent(null);
-  };
-
-  const handleEdit = (content) => {
-    setEditingContent(content);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingContent(null);
-  };
-
-  const handleSearch = (e) => {
-    setSearchQuery(e.target.value);
-  };
-
-  const handleContentDeleted = () => {
-    refreshContents();
-  };
 
   return (
     <motion.div
