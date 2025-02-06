@@ -62,7 +62,7 @@ export default function SubscriptionPage() {
 
   const handleContentClick = (content) => {
     if (content.tier === 'premium' || content.tier === 'basic') {
-      setSelectedContent(content);
+    setSelectedContent(content);
       setIsTransactionModalOpen(true);
     } else {
       // For free content, navigate directly
@@ -223,57 +223,57 @@ export default function SubscriptionPage() {
                     </div>
                   ) : (
                     subscriptions.map((content, index) => {
-                      const ContentIcon = getContentIcon(content.type);
-                      return (
-                        <motion.div
-                          key={content.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + index * 0.1 }}
+                    const ContentIcon = getContentIcon(content.type);
+                    return (
+                      <motion.div
+                        key={content.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + index * 0.1 }}
                           className="p-6 flex items-center justify-between hover:bg-gray-750 transition-colors cursor-pointer"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                              <img 
-                                src={content.thumbnail} 
-                                alt={content.title}
-                                className="w-full h-full object-cover"
-                              />
-                              <div className="absolute bottom-0 right-0 bg-gray-900 p-1 rounded-tl">
-                                <ContentIcon className="w-3 h-3 text-red-500" />
-                              </div>
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                            <img 
+                              src={content.thumbnail} 
+                              alt={content.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute bottom-0 right-0 bg-gray-900 p-1 rounded-tl">
+                              <ContentIcon className="w-3 h-3 text-red-500" />
                             </div>
-                            <div>
-                              <h3 className="font-semibold flex items-center gap-2 text-white">
-                                {content.title}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold flex items-center gap-2 text-white">
+                              {content.title}
                                 {content.tier === "premium" && (
-                                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                                )}
-                              </h3>
-                              <p className="text-sm text-gray-400">
-                                {content.provider} • {content.totalContent}
-                              </p>
-                            </div>
+                                <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              )}
+                            </h3>
+                            <p className="text-sm text-gray-400">
+                              {content.provider} • {content.totalContent}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-8">
-                            <div className="text-right">
-                              <p className="text-sm text-gray-400">Subscription Cost</p>
+                        </div>
+                        <div className="flex items-center gap-8">
+                          <div className="text-right">
+                            <p className="text-sm text-gray-400">Subscription Cost</p>
                               <p className="font-semibold text-red-400">{content.cost.split('/')[0]}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-400">Renewal Date</p>
-                              <p className="font-semibold flex items-center gap-1 text-white">
-                                <Clock className="w-4 h-4" />
-                                {new Date(content.renewalDate).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric'
-                                })}
-                              </p>
-                            </div>
                           </div>
-                        </motion.div>
-                      );
+                          <div className="text-right">
+                            <p className="text-sm text-gray-400">Renewal Date</p>
+                            <p className="font-semibold flex items-center gap-1 text-white">
+                              <Clock className="w-4 h-4" />
+                              {new Date(content.renewalDate).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
                     })
                   )}
                 </div>

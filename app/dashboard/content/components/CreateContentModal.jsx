@@ -61,7 +61,7 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
         return '';
       case 'contentFile':
         if (!editingContent && !value) return 'Content file is required';
-        return '';
+          return '';
       case 'price':
         if (formData.subscriptionTier !== 'free') {
           if (!value && value !== 0) return 'Price is required for paid content';
@@ -166,8 +166,8 @@ console.log(response)
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         setLoading(false);
-        return;
-      }
+      return;
+    }
 
       let contentURL = editingContent?.contentURL;
       let thumbnailURL = editingContent?.thumbnailURL;
@@ -391,22 +391,22 @@ console.log(response)
                         <div className="flex text-sm text-gray-600">
                           <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
                             <span>Upload a file</span>
-                            <input
+                    <input
                               type="file"
                               className="sr-only"
                               onChange={(e) => handleFileChange(e, 'content')}
                               accept={formData.contentType === 'video' ? 'video/*' : 'image/*'}
                             />
-                          </label>
+                  </label>
                           <p className="pl-1">or drag and drop</p>
-                        </div>
+                  </div>
                         <p className="text-xs text-gray-500">
                           {formData.contentType === 'video' ? 'MP4, WebM up to 100MB' : 'PNG, JPG, GIF up to 10MB'}
                         </p>
                         {contentFile && (
                           <p className="text-sm text-green-600">Selected: {contentFile.name}</p>
                         )}
-                      </div>
+                  </div>
                     </div>
                     {errors.contentFile && (
                       <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
@@ -450,29 +450,29 @@ console.log(response)
                         Creator Wallet
                         <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <div className="relative">
+                  <div className="relative">
                         <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                          type="text"
-                          name="creatorWallet"
-                          value={formData.creatorWallet}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
+                      <input
+                        type="text"
+                        name="creatorWallet"
+                        value={formData.creatorWallet}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
                           className={`w-full pl-10 pr-4 py-2 rounded-lg border text-gray-900 ${
                             errors.creatorWallet && touched.creatorWallet
                               ? 'border-red-500 focus:ring-red-500'
                               : 'border-gray-300 focus:ring-blue-500'
                           } focus:outline-none focus:ring-2 transition-colors`}
                           placeholder="0x..."
-                        />
-                      </div>
-                      {errors.creatorWallet && touched.creatorWallet && (
-                        <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle size={14} />
-                          {errors.creatorWallet}
-                        </p>
-                      )}
+                      />
                     </div>
+                      {errors.creatorWallet && touched.creatorWallet && (
+                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                        <AlertCircle size={14} />
+                        {errors.creatorWallet}
+                      </p>
+                    )}
+                  </div>
 
                    {formData.subscriptionTier !== 'free' && <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -553,10 +553,10 @@ console.log(response)
                         <>
                           <Loader className="animate-spin -ml-1 mr-2 h-4 w-4" />
                           {editingContent ? 'Updating...' : 'Creating...'}
-                        </>
-                      ) : (
+                      </>
+                    ) : (
                         editingContent ? 'Update Content' : 'Create Content'
-                      )}
+                    )}
                     </button>
                 </div>
             </form>

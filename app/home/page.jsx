@@ -10,7 +10,7 @@ import Web3 from "web3";
 import detectEthereumProvider from "@metamask/detect-provider";
 import { useUser } from '@clerk/nextjs';
 import CONTRACT_ABI from './contract.json';
-const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS; // You'll add the contract address after deployment
+import AllContentGrid from './_components/AllContentGrid';
 
 // Dynamically import components with no SSR
 const Sidebar = dynamic(() => import("./_components/Sidebar"), { ssr: false });
@@ -54,6 +54,7 @@ export default function Home() {
   const [hasMore, setHasMore] = useState(true);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load Web3 provider
   const loadProvider = async () => {
@@ -65,7 +66,7 @@ export default function Home() {
         await provider.request({ method: 'eth_requestAccounts' });
         const web3 = new Web3(provider);
         const accounts = await web3.eth.getAccounts();
-        const contract = new web3.eth.Contract(CONTRACT_ABI,CONTRACT_ADDRESS );
+        const contract = new web3.eth.Contract(CONTRACT_ABI,process.env.NEXT_PUBLIC_CONTRACT_ADDRESS );
         setWeb3Api({
           provider,
           web3,
@@ -177,6 +178,9 @@ export default function Home() {
   // Update the handlePurchaseConfirm function
   const handlePurchaseConfirm = async (content) => {
     try {
+      setIsLoading(true);
+      setError(null);
+
       // Show loading toast
       const loadingToast = toast.loading('Initializing payment...');
 
@@ -204,11 +208,8 @@ export default function Home() {
         throw new Error('Contract address not configured');
       }
 
-      // Get contract ABI
-      const contractABI = CONTRACT_ABI;
-      
       // Initialize contract instance
-      const contract = new web3.eth.Contract(contractABI, contractAddress);
+      const contract = new web3.eth.Contract(CONTRACT_ABI, contractAddress);
       
       // Verify contract is accessible
       try {
@@ -221,7 +222,7 @@ export default function Home() {
       // Convert price to Wei
       const priceInWei = web3.utils.toWei(content.price.toString(), 'ether');
       console.log('Price in Wei:', priceInWei);
-      console.log('Creator wallet:', content?.creatorWallet);
+      console.log('Creator wallet:', content.creator?.creatorWallet);
 
       // Show transaction confirmation toast
       toast.dismiss(loadingToast);
@@ -229,7 +230,7 @@ export default function Home() {
 
       // Send payment transaction
       const tx = await contract.methods
-        .makePayment(content?.creatorWallet)
+        .makePayment(content.creator.creatorWallet)
         .send({
           from: account,
           value: priceInWei,
@@ -273,6 +274,8 @@ export default function Home() {
       } else {
         toast.error(error.message || 'Failed to process payment');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
