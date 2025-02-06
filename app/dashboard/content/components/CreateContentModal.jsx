@@ -1,26 +1,27 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X, Upload, Link, Wallet, AlertCircle, Tag } from 'lucide-react';
+import { X, Upload, Link, Wallet, AlertCircle, Tag, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import axios from 'axios';
 
 const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent }) => {
   const initialFormState = {
     title: '',
     description: '',
     contentType: 'article',
-    contentURL: '',
-    thumbnailURL: '',
-    creatorWallet: '',
     subscriptionTier: 'free',
     price: 0,
     categories: [],
-    isPublished: false
+    isPublished: false,
+    creatorWallet: ''
   };
 
   const [formData, setFormData] = useState(initialFormState);
+  const [contentFile, setContentFile] = useState(null);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
   const [loading, setLoading] = useState(false);
@@ -33,15 +34,12 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
         title: editingContent.title || '',
         description: editingContent.description || '',
         contentType: editingContent.contentType || 'article',
-        contentURL: editingContent.contentURL || '',
-        thumbnailURL: editingContent.thumbnailURL || '',
-        creatorWallet: editingContent.creatorWallet || '',
         subscriptionTier: editingContent.subscriptionTier || 'free',
         price: editingContent.price || 0,
         categories: editingContent.categories || [],
-        isPublished: editingContent.isPublished || false
+        isPublished: editingContent.isPublished || false,
+        creatorWallet: editingContent.creatorWallet || ''
       });
-      // Reset touched and errors state when editing
       setTouched({});
       setErrors({});
     } else {
@@ -61,32 +59,19 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
         if (value.length < 10) return 'Description must be at least 10 characters';
         if (value.length > 500) return 'Description must be less than 500 characters';
         return '';
-      case 'contentURL':
-        if (!value?.trim()) return 'Content URL is required';
-        try {
-          new URL(value);
-          return '';
-        } catch {
-          return 'Please enter a valid URL';
-        }
-      case 'thumbnailURL':
-        if (!value) return '';
-        try {
-          new URL(value);
-          return '';
-        } catch {
-          return 'Please enter a valid URL';
-        }
-      case 'creatorWallet':
-        if (!value?.trim()) return 'Creator wallet is required';
-        if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
-          return 'Please enter a valid Ethereum address';
-        }
+      case 'contentFile':
+        if (!editingContent && !value) return 'Content file is required';
         return '';
       case 'price':
         if (formData.subscriptionTier !== 'free') {
           if (!value && value !== 0) return 'Price is required for paid content';
           if (value < 0) return 'Price cannot be negative';
+        }
+        return '';
+      case 'creatorWallet':
+        if (!value?.trim()) return 'Creator wallet is required';
+        if (!/^0x[a-fA-F0-9]{40}$/.test(value)) {
+          return 'Please enter a valid Ethereum address';
         }
         return '';
       default:
@@ -120,6 +105,132 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
     }));
   };
 
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (type === 'content') {
+      if (formData.contentType === 'video' && !file.type.includes('video')) {
+        toast.error('Please upload a valid video file');
+        return;
+      }
+      if (formData.contentType === 'image' && !file.type.includes('image')) {
+        toast.error('Please upload a valid image file');
+        return;
+      }
+      setContentFile(file);
+    } else {
+      if (!file.type.includes('image')) {
+        toast.error('Please upload a valid image file for thumbnail');
+        return;
+      }
+      setThumbnailFile(file);
+    }
+  };
+
+  const uploadToCloudinary = async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET);
+
+      const response = await axios.post(
+        process.env.NEXT_PUBLIC_CLOUDINARY_URL,
+        formData
+      );
+console.log(response)
+      return response.data.secure_url;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw new Error('Failed to upload file');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validate all fields
+      const newErrors = {};
+      Object.keys(formData).forEach(key => {
+        const error = validateField(key, formData[key]);
+        if (error) newErrors[key] = error;
+      });
+
+      if (!editingContent && !contentFile) {
+        newErrors.contentFile = 'Content file is required';
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setLoading(false);
+        return;
+      }
+
+      let contentURL = editingContent?.contentURL;
+      let thumbnailURL = editingContent?.thumbnailURL;
+
+      // Upload content file if provided
+      if (contentFile) {
+        contentURL = await uploadToCloudinary(contentFile);
+      }
+
+      // Upload thumbnail if provided
+      if (thumbnailFile) {
+        thumbnailURL = await uploadToCloudinary(thumbnailFile);
+      }
+
+      // Get user info from localStorage
+      const userName = localStorage.getItem('userName') || 'Anonymous';
+
+      // Prepare final data
+      const finalData = {
+        ...formData,
+        contentURL,
+        thumbnailURL,
+        creator: {
+          name: userName,
+          creatorWallet: formData.creatorWallet,
+          image: localStorage.getItem('userImage') || '',
+          bio: localStorage.getItem('userBio') || '',
+          socialLinks: {
+            twitter: localStorage.getItem('userTwitter') || '',
+            github: localStorage.getItem('userGithub') || '',
+            website: localStorage.getItem('userWebsite') || ''
+          }
+        }
+      };
+
+      // Create or update content
+      const url = editingContent ? `/api/content/${editingContent._id}` : '/api/content';
+      const method = editingContent ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(finalData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to save content');
+      }
+
+      toast.success(editingContent ? 'Content updated successfully!' : 'Content created successfully!');
+      resetForm();
+      onContentCreated(data.data);
+      onClose();
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error(error.message || 'Failed to save content');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCategoryChange = (category) => {
     setFormData(prev => ({
       ...prev,
@@ -129,68 +240,12 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
     }));
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key]);
-      if (error) newErrors[key] = error;
-    });
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const resetForm = () => {
     setFormData(initialFormState);
+    setContentFile(null);
+    setThumbnailFile(null);
     setError('');
     setLoading(false);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Mark all fields as touched
-    const touchedFields = Object.keys(formData).reduce(
-      (acc, key) => ({ ...acc, [key]: true }), {}
-    );
-    setTouched(touchedFields);
-    
-    if (!validateForm()) {
-      toast.error('Please fix the errors before submitting');
-      return;
-    }
-
-    setLoading(true);
-    const submitToast = toast.loading(editingContent ? 'Updating content...' : 'Creating content...');
-
-    try {
-      const url = editingContent 
-        ? `/api/content/${editingContent._id}`
-        : '/api/content';
-
-      const method = editingContent ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to save content');
-      }
-
-      toast.success(editingContent ? 'Content updated successfully!' : 'Content created successfully!', { id: submitToast });
-      resetForm();
-      onContentCreated(data.data);
-      onClose();
-    } catch (error) {
-      console.error('Error saving content:', error);
-      toast.error(error.message, { id: submitToast });
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -324,63 +379,67 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
                     </div>
                   </div>
 
-                  {/* URLs */}
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Content URL
-                        <span className="text-red-500 ml-1">*</span>
+                  {/* Content File Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Content File
+                      <span className="text-red-500 ml-1">*</span>
                     </label>
-                      <div className="relative">
-                        <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                          type="url"
-                          name="contentURL"
-                          value={formData.contentURL}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                          className={`w-full pl-10 pr-4 py-2 rounded-lg border text-gray-900 ${
-                            errors.contentURL && touched.contentURL
-                              ? 'border-red-500 focus:ring-red-500'
-                              : 'border-gray-300 focus:ring-blue-500'
-                          } focus:outline-none focus:ring-2 transition-colors`}
-                          placeholder="https://example.com/content"
-                        />
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                      <div className="space-y-1 text-center">
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="flex text-sm text-gray-600">
+                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                            <span>Upload a file</span>
+                            <input
+                              type="file"
+                              className="sr-only"
+                              onChange={(e) => handleFileChange(e, 'content')}
+                              accept={formData.contentType === 'video' ? 'video/*' : 'image/*'}
+                            />
+                          </label>
+                          <p className="pl-1">or drag and drop</p>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {formData.contentType === 'video' ? 'MP4, WebM up to 100MB' : 'PNG, JPG, GIF up to 10MB'}
+                        </p>
+                        {contentFile && (
+                          <p className="text-sm text-green-600">Selected: {contentFile.name}</p>
+                        )}
                       </div>
-                      {errors.contentURL && touched.contentURL && (
+                    </div>
+                    {errors.contentFile && (
                       <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
                         <AlertCircle size={14} />
-                          {errors.contentURL}
+                        {errors.contentFile}
                       </p>
                     )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Thumbnail URL
-                  </label>
-                  <div className="relative">
-                        <Upload className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                      type="url"
-                      name="thumbnailURL"
-                      value={formData.thumbnailURL}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                          className={`w-full pl-10 pr-4 py-2 rounded-lg border text-gray-900 ${
-                            errors.thumbnailURL && touched.thumbnailURL
-                              ? 'border-red-500 focus:ring-red-500'
-                              : 'border-gray-300 focus:ring-blue-500'
-                          } focus:outline-none focus:ring-2 transition-colors`}
-                      placeholder="https://example.com/thumbnail.jpg"
-                    />
                   </div>
-                      {errors.thumbnailURL && touched.thumbnailURL && (
-                    <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                      <AlertCircle size={14} />
-                      {errors.thumbnailURL}
-                    </p>
-                  )}
+
+                  {/* Thumbnail Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Thumbnail Image (Optional)
+                    </label>
+                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                      <div className="space-y-1 text-center">
+                        <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                        <div className="flex text-sm text-gray-600">
+                          <label className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                            <span>Upload a thumbnail</span>
+                            <input
+                              type="file"
+                              className="sr-only"
+                              onChange={(e) => handleFileChange(e, 'thumbnail')}
+                              accept="image/*"
+                            />
+                          </label>
+                        </div>
+                        <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                        {thumbnailFile && (
+                          <p className="text-sm text-green-600">Selected: {thumbnailFile.name}</p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -391,26 +450,29 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
                         Creator Wallet
                         <span className="text-red-500 ml-1">*</span>
                       </label>
-                      <input
-                        type="text"
-                        name="creatorWallet"
-                        value={formData.creatorWallet}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        className={`w-full px-4 py-2 rounded-lg border text-gray-900 ${
-                          errors.creatorWallet && touched.creatorWallet
-                            ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 focus:ring-blue-500'
-                        } focus:outline-none focus:ring-2 transition-colors`}
-                        placeholder="0x..."
-                      />
+                      <div className="relative">
+                        <Wallet className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                          type="text"
+                          name="creatorWallet"
+                          value={formData.creatorWallet}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          className={`w-full pl-10 pr-4 py-2 rounded-lg border text-gray-900 ${
+                            errors.creatorWallet && touched.creatorWallet
+                              ? 'border-red-500 focus:ring-red-500'
+                              : 'border-gray-300 focus:ring-blue-500'
+                          } focus:outline-none focus:ring-2 transition-colors`}
+                          placeholder="0x..."
+                        />
+                      </div>
                       {errors.creatorWallet && touched.creatorWallet && (
-                      <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                        <AlertCircle size={14} />
-                        {errors.creatorWallet}
-                      </p>
-                    )}
-                  </div>
+                        <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
+                          <AlertCircle size={14} />
+                          {errors.creatorWallet}
+                        </p>
+                      )}
+                    </div>
 
                    {formData.subscriptionTier !== 'free' && <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -431,12 +493,6 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
                         } focus:outline-none focus:ring-2 transition-colors`}
                         placeholder="0.00"
                       />
-                      {errors.price && touched.price && (
-                        <p className="mt-1 text-sm text-red-500 flex items-center gap-1">
-                          <AlertCircle size={14} />
-                          {errors.price}
-                        </p>
-                      )}
                     </div>}
                   </div>
 
@@ -491,16 +547,13 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
                     <button
                     type="submit"
                       disabled={loading}
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     >
                       {loading ? (
-                        <span className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                          </svg>
+                        <>
+                          <Loader className="animate-spin -ml-1 mr-2 h-4 w-4" />
                           {editingContent ? 'Updating...' : 'Creating...'}
-                        </span>
+                        </>
                       ) : (
                         editingContent ? 'Update Content' : 'Create Content'
                       )}

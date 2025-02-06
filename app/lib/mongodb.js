@@ -13,18 +13,32 @@ if (!cached) {
   cached = global.mongoose = { conn: null, promise: null };
 }
 
-async function connectToDatabase() {
-  if (cached.conn) {
-    return cached.conn;
-  }
+async function connectDB() {
+  try {
+    if (cached.conn) {
+      return cached.conn;
+    }
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      bufferCommands: false,
-    });
+    if (!cached.promise) {
+      const opts = {
+        bufferCommands: false,
+      };
+
+      cached.promise = mongoose.connect(MONGODB_URI, opts);
+    }
+
+    try {
+      cached.conn = await cached.promise;
+    } catch (e) {
+      cached.promise = null;
+      throw e;
+    }
+
+    return cached.conn;
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw error;
   }
-  cached.conn = await cached.promise;
-  return cached.conn;
 }
 
-export default connectToDatabase;
+export default connectDB;

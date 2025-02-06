@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, DollarSign, FileText, Clock, ThumbsUp, MessageCircle } from 'lucide-react';
+import { Eye, DollarSign, FileText, Clock, ThumbsUp, MessageCircle, ShoppingCart } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
@@ -23,6 +23,7 @@ export default function DashboardPage() {
       } catch (error) {
         console.error('Error fetching stats:', error);
         toast.error('Failed to load dashboard stats');
+
       } finally {
         setLoading(false);
       }
@@ -44,6 +45,36 @@ export default function DashboardPage() {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  const getActivityIcon = (type) => {
+    switch (type) {
+      case 'content':
+        return <FileText className="w-5 h-5 text-blue-600" />;
+      case 'like':
+        return <ThumbsUp className="w-5 h-5 text-red-600" />;
+      case 'comment':
+        return <MessageCircle className="w-5 h-5 text-green-600" />;
+      case 'purchase':
+        return <ShoppingCart className="w-5 h-5 text-purple-600" />;
+      default:
+        return <Clock className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const getActivityMessage = (activity) => {
+    switch (activity.type) {
+      case 'content':
+        return `New ${activity.contentType} created: "${activity.title}"`;
+      case 'like':
+        return `Someone liked your ${activity.contentType}: "${activity.title}"`;
+      case 'comment':
+        return `${activity.userName} commented on your ${activity.contentType}: "${activity.title}"`;
+      case 'purchase':
+        return `New purchase of ${activity.contentType}: "${activity.title}" for ${formatCurrency(activity.amount)}`;
+      default:
+        return activity.title;
+    }
   };
 
   if (loading) {
@@ -136,44 +167,51 @@ export default function DashboardPage() {
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Recent Activity</h2>
         {stats?.recentActivity && stats.recentActivity.length > 0 ? (
           <div className="space-y-4">
-            {stats.recentActivity.map((activity) => (
+            {[...stats.recentActivity].reverse().map((activity, index) => (
               <motion.div
-                key={activity._id}
+                key={`${activity.type}-${activity.date}-${index}`}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                transition={{ delay: index * 0.1 }}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0">
                     <div className={`p-2 rounded-lg ${
-                      activity.isPublished ? 'bg-green-100' : 'bg-yellow-100'
+                      activity.type === 'content' ? 'bg-blue-100' :
+                      activity.type === 'like' ? 'bg-red-100' :
+                      activity.type === 'comment' ? 'bg-green-100' :
+                      activity.type === 'purchase' ? 'bg-purple-100' :
+                      'bg-gray-100'
                     }`}>
-                      <Clock className={`w-5 h-5 ${
-                        activity.isPublished ? 'text-green-600' : 'text-yellow-600'
-                      }`} />
+                      {getActivityIcon(activity.type)}
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-medium text-gray-900">{activity.title}</h3>
+                    <p className="font-medium text-gray-900">
+                      {getActivityMessage(activity)}
+                    </p>
                     <p className="text-sm text-gray-500">
-                      {activity.contentType} • {formatDate(activity.createdAt)}
+                      {formatDate(activity.date)}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-4 h-4" />
-                    <span>{activity.views || 0}</span>
+                {activity.type === 'content' && (
+                  <div className="flex items-center gap-4 text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <Eye className="w-4 h-4" />
+                      <span>{activity.stats.views}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <ThumbsUp className="w-4 h-4" />
+                      <span>{activity.stats.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>{activity.stats.comments}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ThumbsUp className="w-4 h-4" />
-                    <span>{activity.likesCount || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MessageCircle className="w-4 h-4" />
-                    <span>{activity.commentsCount || 0}</span>
-                  </div>
-                </div>
+                )}
               </motion.div>
             ))}
           </div>

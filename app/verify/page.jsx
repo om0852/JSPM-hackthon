@@ -13,6 +13,9 @@ export default function VerifyPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState('');
 
   // Check verification status on load
   useEffect(() => {
@@ -85,19 +88,21 @@ export default function VerifyPage() {
 
   // Handle user type selection and verification
   const handleVerification = async () => {
-    if (!account) {
-      toast.error('Please connect your wallet first');
-      return;
-    }
-    if (!userType) {
-      toast.error('Please select a user type');
-      return;
-    }
-
-    const verifyToast = toast.loading('Verifying your account...');
-
     try {
-      console.log('Submitting verification...');
+      setVerifying(true);
+      setError('');
+
+      // Get current user info
+      const userInfo = {
+        walletAddress: account,
+        userType,
+        name: user?.firstName && user?.lastName 
+          ? `${user.firstName} ${user.lastName}`
+          : user?.username || 'Anonymous',
+        image: user?.imageUrl || '',
+        email: user?.emailAddresses?.[0]?.emailAddress || ''
+      };
+
       const response = await fetch('/api/verify', {
         method: 'POST',
         headers: {
@@ -105,28 +110,32 @@ export default function VerifyPage() {
         },
         body: JSON.stringify({
           walletAddress: account,
-          userType: userType
+          userType
         }),
       });
 
       const data = await response.json();
-      console.log('Verification submission response:', data);
 
-      if (response.ok) {
-        toast.success('Verification successful! Redirecting...', {
-          id: verifyToast,
-          duration: 2000
-        });
-        // Use timeout to ensure toast is shown before redirect
-        setTimeout(() => {
-          window.location.href = '/home';
-        }, 1000);
-      } else {
+      if (!response.ok) {
         throw new Error(data.message || 'Verification failed');
       }
+
+      // Store user information in localStorage
+      localStorage.setItem('userWallet', account);
+      localStorage.setItem('userName', userInfo.name);
+      localStorage.setItem('userImage', userInfo.image);
+      localStorage.setItem('userEmail', userInfo.email);
+      localStorage.setItem('userType', userType);
+
+      toast.success('Verification successful!');
+      router.push('/home');
+
     } catch (error) {
-      console.error('Error during verification:', error);
-      toast.error(error.message, { id: verifyToast });
+      console.error('Verification error:', error);
+      setError(error.message || 'Failed to verify wallet');
+      toast.error(error.message || 'Verification failed');
+    } finally {
+      setVerifying(false);
     }
   };
 
