@@ -151,12 +151,26 @@ export default function Home() {
     }
 
     if (content.subscriptionTier === 'premium' || content.subscriptionTier === 'basic') {
-      // Show confirmation modal for premium/basic content
-      setSelectedContent(content);
-      setIsTransactionModalOpen(true);
+      try {
+        // Check if user has already purchased this content
+        const response = await fetch(`/api/content/purchase/${content._id}`);
+        const data = await response.json();
+
+        if (response.ok && data.hasPurchased) {
+          // If already purchased, redirect to content
+          router.push(`/content/${content.contentType}/${content._id}`);
+        } else {
+          // If not purchased, show confirmation modal
+          setSelectedContent(content);
+          setIsTransactionModalOpen(true);
+        }
+      } catch (error) {
+        console.error('Error checking purchase status:', error);
+        toast.error('Error checking purchase status');
+      }
     } else {
       // For free content, navigate directly
-      router.push(`/content/${content.type}/${content.id}`);
+      router.push(`/content/${content.contentType}/${content._id}`);
     }
   };
 

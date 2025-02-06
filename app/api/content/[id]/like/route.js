@@ -18,6 +18,7 @@ export async function POST(req, { params }) {
 
         await connectDB();
         
+        // Find content without lean() to get a mongoose document
         const content = await Content.findById(id);
         
         if (!content) {
@@ -28,27 +29,40 @@ export async function POST(req, { params }) {
         }
 
         // Check if user has already liked
-        const existingLike = content.likes.find(like => like.userId === user.id);
+        const existingLikeIndex = content.likes.findIndex(like => like.userId === user.id);
         
-        if (existingLike) {
+        if (existingLikeIndex !== -1) {
             // Unlike: Remove the like
-            content.likes = content.likes.filter(like => like.userId !== user.id);
+            content.likes.splice(existingLikeIndex, 1);
+            // Update likesCount
+            content.likesCount = content.likes.length;
+            // Save with validation disabled for this operation
+            await content.save({ validateBeforeSave: false });
+
+            return NextResponse.json({
+                status: 'success',
+                message: 'Content unliked successfully',
+                likesCount: content.likesCount,
+                isLiked: false
+            });
         } else {
             // Like: Add new like
             content.likes.push({
                 userId: user.id,
                 createdAt: new Date()
             });
+            // Update likesCount
+            content.likesCount = content.likes.length;
+            // Save with validation disabled for this operation
+            await content.save({ validateBeforeSave: false });
+
+            return NextResponse.json({
+                status: 'success',
+                message: 'Content liked successfully',
+                likesCount: content.likesCount,
+                isLiked: true
+            });
         }
-
-        await content.save();
-
-        return NextResponse.json({
-            status: 'success',
-            message: existingLike ? 'Content unliked' : 'Content liked',
-            likesCount: content.likesCount,
-            isLiked: !existingLike
-        });
 
     } catch (error) {
         console.error('API Error:', error);

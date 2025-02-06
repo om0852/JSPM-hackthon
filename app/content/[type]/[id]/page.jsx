@@ -84,14 +84,11 @@ export default function ContentPage() {
   }, [params.id, params.type, isLoaded]);
 
   const handleLike = async () => {
-    if (!isLoaded || !user) {
+    if (!user) {
       toast.error('Please sign in to like content');
       return;
     }
 
-    if (likeInProgress) return;
-
-    setLikeInProgress(true);
     try {
       const response = await fetch(`/api/content/${content._id}/like`, {
         method: 'POST'
@@ -110,10 +107,36 @@ export default function ContentPage() {
       }));
 
       toast.success(data.message);
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setLikeInProgress(false);
+    } catch (error) {
+      console.error('Error liking content:', error);
+      toast.error('Failed to process like');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success('Copied to clipboard!', {
+        icon: '📋',
+        style: {
+          background: '#363636',
+          color: '#fff',
+          borderRadius: '10px',
+          border: '1px solid #4B5563',
+        },
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      toast.error('Failed to copy link', {
+        icon: '❌',
+        style: {
+          background: '#363636',
+          color: '#fff',
+          borderRadius: '10px',
+          border: '1px solid #4B5563',
+        },
+      });
     }
   };
 
@@ -249,12 +272,15 @@ export default function ContentPage() {
                                 ? 'bg-red-500 text-white'
                                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                             } transition-colors`}
-                            disabled={likeInProgress}
+                            disabled={!user}
                           >
                             <ThumbsUp className={`w-4 h-4 ${content.isLiked ? 'fill-current' : ''}`} />
                             <span>{content.likesCount || 0}</span>
                           </button>
-                          <button className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors">
+                          <button 
+                            onClick={handleShare}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+                          >
                             <Share2 className="w-4 h-4" />
                             <span>Share</span>
                           </button>
