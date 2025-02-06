@@ -33,6 +33,7 @@ export default function ContentPage() {
   const [likeInProgress, setLikeInProgress] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
+  const [userData, setUserData] = useState(null);
 
   // Fetch content data
   const fetchContent = async () => {
@@ -90,6 +91,28 @@ export default function ContentPage() {
       fetchContent();
     }
   }, [params.id, params.type, isLoaded]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (content && content.userId) {
+        try {
+          const response = await fetch(`/api/getUser?userId=${content.userId}`);
+          const data = await response.json();
+
+          if (response.ok) {
+            // Handle the user data (e.g., set it in state)
+            setUserData(data.data);
+          } else {
+            console.error(data.message);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [content]);
 
   const handleLike = async () => {
     if (!user) {
@@ -433,11 +456,11 @@ export default function ContentPage() {
                       </div>
 
                       {/* Description */}
-                      <div className="mb-6 p-4 bg-gray-800 rounded-xl">
+                      {/* <div className="mb-6 p-4 bg-gray-800 rounded-xl">
                         <p className="text-gray-300 leading-relaxed">
                           {content.description}
                         </p>
-                      </div>
+                      </div> */}
 
                       {/* Comments Section */}
                       <div className="mt-8">
@@ -447,25 +470,6 @@ export default function ContentPage() {
                     </div>
                   </>
                 )}
-
-                {/* Creator Info */}
-                <div className="mt-6 flex items-start gap-4 p-4 bg-gray-800 rounded-xl">
-                  <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden">
-                    <img
-                      src="/placeholder-user.jpg"
-                      alt="Creator"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white">
-                      Creator
-                    </h3>
-                    <p className="text-gray-400 mt-2">
-                      Wallet: {content.creatorWallet}
-                    </p>
-                  </div>
-                </div>
               </div>
 
               {/* Related Content */}

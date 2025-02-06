@@ -232,12 +232,24 @@ console.log(response)
   };
 
   const handleCategoryChange = (category) => {
-    setFormData(prev => ({
-      ...prev,
-      categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
-        : [...prev.categories, category]
-    }));
+    setFormData(prev => {
+      // If it's a predefined category
+      if (['NFT', 'DeFi', 'Gaming', 'Metaverse', 'Web3', 'Blockchain', 'Crypto', 'Other'].includes(category)) {
+        return {
+          ...prev,
+          categories: prev.categories.includes(category)
+            ? prev.categories.filter(c => c !== category)
+            : [...prev.categories, category]
+        };
+      } 
+      // If it's a custom category
+      else {
+        return {
+          ...prev,
+          categories: [...prev.categories, category]
+        };
+      }
+    });
   };
 
   const resetForm = () => {
@@ -502,7 +514,7 @@ console.log(response)
                       Categories
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {['NFT', 'DeFi', 'Gaming', 'Metaverse', 'Web3', 'Blockchain', 'Crypto'].map((category) => (
+                      {['NFT', 'DeFi', 'Gaming', 'Metaverse', 'Web3', 'Blockchain', 'Crypto', 'Other'].map((category) => (
                         <button
                           key={category}
                           type="button"
@@ -518,6 +530,27 @@ console.log(response)
                         </button>
                       ))}
                     </div>
+                    
+                    {/* Custom Category Input */}
+                    {formData.categories.includes('Other') && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          placeholder="Enter custom category"
+                          className="w-full px-3 py-1 text-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors text-gray-900"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && e.target.value.trim()) {
+                              e.preventDefault();
+                              handleCategoryChange(e.target.value.trim());
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Press Enter to add custom category
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Publish Toggle */}
