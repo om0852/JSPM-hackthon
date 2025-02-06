@@ -168,21 +168,27 @@ function Navbar({ selectedFilter, onFilterChange }) {
             className="relative"
           >
             <form onSubmit={handleSearchSubmit} className="flex items-center">
-              <div className="flex items-center flex-1 group">
+              <div className="flex items-center flex-1 relative group">
+                <Search className="absolute left-4 w-5 h-5 text-gray-300 pointer-events-none
+                  group-hover:text-blue-400 group-focus-within:text-blue-400 
+                  transition-colors duration-200 z-10" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={handleSearch}
                   onFocus={() => setIsSearchFocused(true)}
                   placeholder="Search for content..."
-                  className="w-full px-4 py-2 text-gray-200 bg-gray-800 border border-gray-700 rounded-l-full focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all duration-200 placeholder-gray-400"
+                  className="w-full pl-12 pr-14 py-2.5 text-gray-200 bg-gray-800/80 
+                    backdrop-blur-sm border border-gray-700/50 rounded-full 
+                    focus:outline-none focus:border-blue-500/50 focus:ring-2 
+                    focus:ring-blue-500/20 transition-all duration-300 
+                    placeholder-gray-400 hover:bg-gray-800/90 
+                    hover:border-gray-600/50 shadow-lg"
                 />
-                <button 
-                  type="submit"
-                  className="px-6 py-2 text-gray-400 bg-gray-800 border border-l-0 border-gray-700 rounded-r-full hover:bg-gray-700 transition-colors duration-200 group-hover:border-red-500"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
+                <div className="absolute right-3 text-xs text-gray-400 bg-gray-700/50 
+                  px-2 py-1 rounded-full border border-gray-600/30 backdrop-blur-sm">
+                  ⌘K
+                </div>
               </div>
             </form>
             <AnimatePresence>

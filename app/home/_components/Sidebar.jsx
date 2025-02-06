@@ -62,40 +62,65 @@ const Sidebar = () => {
   }
 
   return (
-    <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white">
+    <div className="space-y-4 py-4 flex flex-col h-full bg-gray-900 text-white relative">
+      
+
+      {/* Menu Section */}
       <div className="px-3 py-2 flex-1">
-        <h2 className="mb-2 px-4 text-lg font-semibold">
-          Menu
-        </h2>
         <div className="space-y-1">
           {routes.map((route) => (
             <Link
               key={route.href}
               href={route.href}
-              className={`text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-gray-800 rounded-lg transition ${
-                route.className || ''
-              } ${
-                pathname === route.href ? "text-white bg-gray-800" : route.className ? "" : "text-zinc-400"
-              }`}
+              className={`
+                text-sm group flex p-3 w-full justify-start font-medium cursor-pointer
+                rounded-lg transition-all duration-200 ease-in-out
+                ${pathname === route.href 
+                  ? 'bg-gray-800/50 backdrop-blur-sm shadow-lg text-white' 
+                  : 'text-gray-400 hover:bg-gray-800/30'
+                }
+                hover:translate-x-1
+                hover:shadow-md
+              `}
             >
-              <div className="flex items-center flex-1">
-                <route.icon className={`h-5 w-5 mr-3 ${route.className ? 'text-white' : ''}`} />
-                {route.label}
+              <div className="flex items-center flex-1 relative">
+                <div className="relative">
+                  <route.icon className={`h-5 w-5 mr-3 transition-transform duration-200 group-hover:scale-110 ${
+                    pathname === route.href ? 'text-blue-500' : 'text-gray-400'
+                  }`} />
+                  {pathname === route.href && (
+                    <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20" />
+                  )}
+                </div>
+                <span>{route.label}</span>
+                {pathname === route.href && (
+                  <div className="absolute left-0 -ml-[12px] h-full w-[3px] bg-gradient-to-b from-blue-500 to-purple-500 rounded-r" />
+                )}
               </div>
             </Link>
           ))}
         </div>
       </div>
-      <div className="px-3 py-2 border-t border-gray-700">
+
+      {/* Logout Section */}
+      <div className="px-3 py-4 border-t border-gray-800/50 mt-auto">
         <button
           onClick={handleSignOut}
-          className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-gray-800 rounded-lg transition text-zinc-400"
+          className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer 
+            rounded-lg transition-all duration-200 ease-in-out
+            text-gray-400 hover:bg-red-500/10 hover:text-red-500
+            hover:translate-x-1 hover:shadow-md"
         >
           <div className="flex items-center flex-1">
-            <LogOut className="h-5 w-5 mr-3" />
-            Logout
+            <LogOut className="h-5 w-5 mr-3 transition-transform duration-200 group-hover:scale-110" />
+            <span>Logout</span>
           </div>
         </button>
+      </div>
+
+      {/* Version or Additional Info */}
+      <div className="px-6 py-2 text-xs text-gray-500">
+        <p>Version 1.0.0</p>
       </div>
     </div>
   );
