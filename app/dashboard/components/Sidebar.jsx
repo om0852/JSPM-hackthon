@@ -12,6 +12,7 @@ import {
   Info,
   Mail
 } from 'lucide-react';
+import Link from 'next/link';
 
 const Sidebar = () => {
   const router = useRouter();
@@ -20,7 +21,6 @@ const Sidebar = () => {
     { name: 'Home', icon:Home, path: '/home' },
     { name: 'Content', icon: Film, path: '/dashboard/content' },
     { name: 'Earnings', icon: DollarSign, path: '/dashboard/earnings' },
-    { name: 'Profile', icon: UserCircle, path: '/dashboard/profile' },
     { name: 'Settings', icon: Settings, path: '/dashboard/settings' },
     { name: 'About', icon: Info, path: '/about' },
     { name: 'Contact', icon: Mail, path: '/contact' },
@@ -30,12 +30,14 @@ const Sidebar = () => {
     <div className="fixed left-0 top-0 h-full w-64 bg-white/80 backdrop-blur-lg border-r border-gray-200 p-4">
       <div className="flex flex-col h-full">
         {/* Logo */}
+        <Link href="/dashboard">
         <div className="mb-8 flex items-center space-x-2">
           <Youtube className="h-6 w-6 text-purple-600" />
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             BlockTube
           </h1>
         </div>
+        </Link>
 
         {/* Menu Items */}
         <nav className="flex-1">

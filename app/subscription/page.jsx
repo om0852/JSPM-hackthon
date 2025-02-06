@@ -57,7 +57,7 @@ export default function SubscriptionPage() {
   }, [isLoaded, user]);
 
   const totalMonthlyCost = subscriptions
-    .reduce((sum, item) => sum + parseFloat(item.cost.replace('$', '').replace('/month', '')), 0)
+    .reduce((sum, item) => sum + parseFloat(item.cost.replace('$', '').replace('', '')), 0)
     .toFixed(2);
 
   const handleContentClick = (content) => {
@@ -101,7 +101,7 @@ export default function SubscriptionPage() {
       const contract = new web3.eth.Contract(contractABI, contractAddress);
 
       // Convert price to Wei
-      const priceInWei = web3.utils.toWei(content.cost.replace('$', '').replace('/month', ''), 'ether');
+      const priceInWei = web3.utils.toWei(content.cost.replace('$', '').replace('', ''), 'ether');
 
       // Show transaction confirmation toast
       const transactionToast = toast.loading('Please confirm the transaction in MetaMask...');
@@ -231,7 +231,6 @@ export default function SubscriptionPage() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 + index * 0.1 }}
                           className="p-6 flex items-center justify-between hover:bg-gray-750 transition-colors cursor-pointer"
-                          onClick={() => handleContentClick(content)}
                         >
                           <div className="flex items-center space-x-4">
                             <div className="relative w-12 h-12 rounded-lg overflow-hidden">
@@ -259,7 +258,7 @@ export default function SubscriptionPage() {
                           <div className="flex items-center gap-8">
                             <div className="text-right">
                               <p className="text-sm text-gray-400">Subscription Cost</p>
-                              <p className="font-semibold text-red-400">{content.cost}</p>
+                              <p className="font-semibold text-red-400">{content.cost.split('/')[0]}</p>
                             </div>
                             <div className="text-right">
                               <p className="text-sm text-gray-400">Renewal Date</p>

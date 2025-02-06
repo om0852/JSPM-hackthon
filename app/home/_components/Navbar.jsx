@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { Search } from 'lucide-react'
+import { Search, X, Video, Book, Image as ImageIcon, FileText, TrendingUp } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { UserButton } from "@clerk/nextjs"
 import { searchContent } from "../../utils/search"
@@ -12,55 +12,65 @@ import Link from 'next/link'
 // Dynamically import SearchResults
 const SearchResults = dynamic(() => import('./SearchResults'), { ssr: false });
 
+// Logo component
 const BlockTubeIcon = () => (
-  <motion.svg
-    width="32"
-    height="32"
-    viewBox="0 0 32 32"
-    className="mr-2"
-    initial={{ scale: 0 }}
-    animate={{ scale: 1 }}
-    transition={{ duration: 0.5, type: "spring" }}
-  >
-    <motion.rect
-      x="4"
-      y="4"
-      width="24"
-      height="24"
-      rx="4"
-      fill="url(#gradient)"
-      className="mr-2"
-      initial={{ rotate: 0 }}
-      animate={{
-        rotate: 360,
-        transition: {
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear"
-        }
-      }}
-    />
-    <motion.path
-      d="M20 16L14 20L14 12L20 16Z"
-      fill="white"
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-      transition={{ delay: 0.2 }}
-    />
-    <defs>
-      <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
-        <stop offset="0%" stopColor="#ef4444" />
-        <stop offset="100%" stopColor="#dc2626" />
-      </linearGradient>
-    </defs>
-  </motion.svg>
+  <div className="flex items-center space-x-2">
+    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+      <span className="text-white font-bold">D</span>
+    </div>
+    <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+      DecentralHub
+    </span>
+  </div>
 );
+
+// Search Result Item component
+const SearchResultItem = ({ result, onSelect }) => {
+  const getIcon = () => {
+    switch (result.type) {
+      case 'video':
+        return <Video className="w-4 h-4 text-blue-500" />;
+      case 'course':
+        return <Book className="w-4 h-4 text-purple-500" />;
+      case 'image':
+        return <ImageIcon className="w-4 h-4 text-green-500" />;
+      case 'article':
+        return <FileText className="w-4 h-4 text-red-500" />;
+      default:
+        return <TrendingUp className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      onClick={() => onSelect(result)}
+      className="flex items-center space-x-3 p-3 hover:bg-gray-100 rounded-lg cursor-pointer transition-colors"
+    >
+      <div className="flex-shrink-0">
+        {getIcon()}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900 truncate">{result.title}</p>
+        <p className="text-xs text-gray-500 truncate">{result.creator}</p>
+      </div>
+      <div className="flex-shrink-0">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+          {result.type}
+        </span>
+      </div>
+    </motion.div>
+  );
+};
 
 function Navbar({ selectedFilter, onFilterChange }) {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
   const searchRef = useRef(null);
   const router = useRouter();
 
@@ -73,7 +83,7 @@ function Navbar({ selectedFilter, onFilterChange }) {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setIsSearchFocused(false);
+        setShowResults(false);
       }
     };
 
@@ -83,34 +93,47 @@ function Navbar({ selectedFilter, onFilterChange }) {
     }
   }, [mounted]);
 
-  const handleSearch = useCallback((e) => {
-    const query = e.target.value;
+  const handleSearch = async (query) => {
     setSearchQuery(query);
-    
-    if (query.trim()) {
-      const results = searchContent(query);
-      setSearchResults(results);
-    } else {
+    if (query.trim().length === 0) {
       setSearchResults([]);
+      setShowResults(false);
+      return;
     }
-  }, []);
 
-  const handleSearchSubmit = useCallback((e) => {
-    e.preventDefault();
-    if (searchQuery.trim() && searchResults.length > 0) {
-      const firstResult = searchResults[0];
-      router.push(`/${firstResult.contentType}s/${firstResult.id}`);
-      setSearchQuery('');
+    setIsSearching(true);
+    setShowResults(true);
+
+    try {
+      // Replace with your actual API endpoint
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      
+      if (response.ok) {
+        setSearchResults(data.results);
+      } else {
+        console.error('Search failed:', data.message);
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Search error:', error);
       setSearchResults([]);
-      setIsSearchFocused(false);
+    } finally {
+      setIsSearching(false);
     }
-  }, [searchQuery, searchResults, router]);
+  };
 
-  const handleCloseSearch = useCallback(() => {
+  const handleResultSelect = (result) => {
+    setShowResults(false);
+    setSearchQuery('');
+    router.push(`/content/${result.type}/${result._id}`);
+  };
+
+  const clearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
-    setIsSearchFocused(false);
-  }, []);
+    setShowResults(false);
+  };
 
   if (!mounted) {
     return null;
@@ -134,28 +157,6 @@ function Navbar({ selectedFilter, onFilterChange }) {
             className="flex items-center cursor-pointer"
           >
             <BlockTubeIcon />
-            <h1 className="text-2xl font-bold tracking-tight">
-              <motion.span 
-                className="text-white inline-block"
-                whileHover={{ scale: 1.1 }}
-              >
-                Block
-              </motion.span>
-              <motion.span 
-                className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-red-600 inline-block"
-                whileHover={{ scale: 1.1 }}
-                animate={{ 
-                  rotate: [0, 5, -5, 0],
-                  transition: {
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "linear"
-                  }
-                }}
-              >
-                Tube
-              </motion.span>
-            </h1>
           </motion.div>
         </Link>
 
@@ -167,32 +168,66 @@ function Navbar({ selectedFilter, onFilterChange }) {
             transition={{ delay: 0.1 }}
             className="relative"
           >
-            <form onSubmit={handleSearchSubmit} className="flex items-center">
-              <div className="flex items-center flex-1 group">
+            <div className="relative">
+              <motion.div
+                className="relative flex items-center"
+                initial={false}
+                animate={{
+                  width: searchQuery ? "100%" : "100%"
+                }}
+              >
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={handleSearch}
-                  onFocus={() => setIsSearchFocused(true)}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-full 
+                           bg-gray-50 focus:bg-white
+                           text-gray-900 placeholder-gray-500
+                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                           transition-all duration-200"
                   placeholder="Search for content..."
-                  className="w-full px-4 py-2 text-gray-200 bg-gray-800 border border-gray-700 rounded-l-full focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all duration-200 placeholder-gray-400"
                 />
-                <button 
-                  type="submit"
-                  className="px-6 py-2 text-gray-400 bg-gray-800 border border-l-0 border-gray-700 rounded-r-full hover:bg-gray-700 transition-colors duration-200 group-hover:border-red-500"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
-              </div>
-            </form>
-            <AnimatePresence>
-              {isSearchFocused && (
-                <SearchResults 
-                  results={searchResults}
-                  onClose={handleCloseSearch}
-                />
-              )}
-            </AnimatePresence>
+                {searchQuery && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    <X className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                  </button>
+                )}
+              </motion.div>
+
+              {/* Search Results Dropdown */}
+              <AnimatePresence>
+                {showResults && (searchResults.length > 0 || isSearching) && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden"
+                  >
+                    <div className="py-2">
+                      {isSearching ? (
+                        <div className="flex items-center justify-center p-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+                        </div>
+                      ) : (
+                        searchResults.map((result) => (
+                          <SearchResultItem
+                            key={result._id}
+                            result={result}
+                            onSelect={handleResultSelect}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </motion.div>
         </div>
 
