@@ -28,7 +28,7 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx"
-, "app/sign-up/[[...sign-up]]/page.jsx"  ],
+, "app/sign-up/[[...sign-up]]/page.jsx", "app/components/ErrorBoundary.jsx"  ],
   "exclude": [
     "node_modules"
   ]
