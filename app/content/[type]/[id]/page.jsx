@@ -13,20 +13,41 @@ import {
 } from 'lucide-react';
 import Sidebar from '../../../home/_components/Sidebar';
 import ContentNavbar from '../../_components/ContentNavbar';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import CourseContent from '../../course/_components/CourseContent';
 import { useUser } from '@clerk/nextjs';
 import toast, { Toaster } from 'react-hot-toast';
 import ArticleView from '../../article/_components/ArticleView';
 import ImageView from '../../image/_components/ImageView';
+import Comments from '../../_components/Comments';
+import PurchaseConfirmModal from '../../../home/_components/PurchaseConfirmModal';
+import Web3 from 'web3';
+import CONTRACT_ABI from '../../../home/contract.json';
 
 export default function ContentPage() {
   const params = useParams();
+  const router = useRouter();
   const { user, isLoaded } = useUser();
   const [content, setContent] = useState(null);
   const [relatedContent, setRelatedContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [likeInProgress, setLikeInProgress] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [hasPurchased, setHasPurchased] = useState(false);
+
+  // Check if user has purchased the content
+  const checkPurchaseStatus = async () => {
+    try {
+      const response = await fetch(`/api/content/purchase/${params.id}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setHasPurchased(data.hasPurchased);
+      }
+    } catch (error) {
+      console.error('Error checking purchase status:', error);
+    }
+  };
 
   // Fetch content data
   const fetchContent = async () => {
@@ -52,6 +73,11 @@ export default function ContentPage() {
       };
 
       setContent(contentWithType);
+
+      // Check purchase status if content is not free
+      if (contentWithType.subscriptionTier !== 'free' && user) {
+        checkPurchaseStatus();
+      }
 
       // Fetch related content
       const relatedResponse = await fetch(
@@ -137,6 +163,74 @@ export default function ContentPage() {
           border: '1px solid #4B5563',
         },
       });
+    }
+  };
+
+  const handlePurchaseConfirm = async (content) => {
+    try {
+      // Show loading toast
+      const loadingToast = toast.loading('Initializing payment...');
+
+      // Check if MetaMask is installed
+      if (!window.ethereum) {
+        toast.dismiss(loadingToast);
+        throw new Error('Please install MetaMask to make purchases');
+      }
+
+      // Request account access
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const web3 = new Web3(window.ethereum);
+
+      // Get the contract
+      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+      const contract = new web3.eth.Contract(CONTRACT_ABI, contractAddress);
+
+      // Get user's wallet address
+      const accounts = await web3.eth.getAccounts();
+      const userWallet = accounts[0];
+
+      // Convert price to wei (assuming price is in ETH)
+      const priceInWei = web3.utils.toWei(content.price.toString(), 'ether');
+
+      // Make the payment
+      const transaction = await contract.methods.makePayment(content.creator.creatorWallet)
+        .send({
+          from: userWallet,
+          value: priceInWei
+        });
+
+      // Record the purchase in the database
+      const purchaseResponse = await fetch('/api/content/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentId: content._id,
+          transactionHash: transaction.transactionHash,
+          amount: content.price,
+          creatorId: content.userId,
+          creatorWallet: content.creator.creatorWallet,
+          contentType: content.contentType,
+          subscriptionTier: content.subscriptionTier
+        }),
+      });
+
+      const purchaseData = await purchaseResponse.json();
+
+      if (!purchaseResponse.ok) {
+        throw new Error(purchaseData.message || 'Failed to record purchase');
+      }
+
+      // Update purchase status
+      setHasPurchased(true);
+      setIsTransactionModalOpen(false);
+      toast.dismiss(loadingToast);
+      toast.success('Purchase successful!');
+
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast.error(error.message || 'Failed to process payment');
     }
   };
 
@@ -233,6 +327,137 @@ export default function ContentPage() {
     );
   }
 
+  const renderContent = () => {
+    if (!content) return null;
+
+    // If content is free or user has purchased it, show the content
+    if (content.subscriptionTier === 'free' || hasPurchased) {
+      if (content.contentType === 'article') {
+        return <ArticleView article={content} />;
+      } else if (content.contentType === 'image') {
+        return <ImageView image={content} />;
+      } else {
+        return (
+          <>
+            {/* Content Preview */}
+            <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800">
+              <img
+                src={content.thumbnailURL || '/placeholder-image.jpg'}
+                alt={content.title}
+                className="w-full h-full object-cover"
+              />
+              {content.contentType === 'video' && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center"
+                  >
+                    <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-transparent border-l-white ml-1" />
+                  </motion.button>
+                </div>
+              )}
+              {content.contentType === 'image' && (
+                <div className="absolute bottom-4 right-4">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Image
+                  </motion.button>
+                </div>
+              )}
+            </div>
+
+            {/* Content Info */}
+            <div className="mt-4">
+              <h1 className="text-2xl font-bold text-white mb-2">
+                {content.title}
+              </h1>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    {content.contentType === 'video' && (
+                      <>
+                        <Users className="w-4 h-4" />
+                        <span>{content.views} views</span>
+                      </>
+                    )}
+                    {content.contentType === 'course' && (
+                      <>
+                        <Users className="w-4 h-4" />
+                        <span>{content.students || 0} students</span>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <MessageCircle className="w-4 h-4" />
+                    <span>{content.commentsCount || 0} comments</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={handleLike}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                      content.isLiked
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                    } transition-colors`}
+                    disabled={!user}
+                  >
+                    <ThumbsUp className={`w-4 h-4 ${content.isLiked ? 'fill-current' : ''}`} />
+                    <span>{content.likesCount || 0}</span>
+                  </button>
+                  <button 
+                    onClick={handleShare}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Share</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="mb-6 p-4 bg-gray-800 rounded-xl">
+                <p className="text-gray-300 leading-relaxed">
+                  {content.description}
+                </p>
+              </div>
+
+              {/* Comments Section */}
+              <div className="mt-8">
+                <h2 className="text-2xl font-semibold text-white mb-6">Comments</h2>
+                <Comments contentId={content._id} />
+              </div>
+            </div>
+          </>
+        );
+      }
+    } else {
+      // Show purchase prompt if not purchased
+      return (
+        <div className="flex flex-col items-center justify-center p-8 bg-gray-800 rounded-xl">
+          <h2 className="text-2xl font-bold text-white mb-4">Premium Content</h2>
+          <p className="text-gray-300 mb-6 text-center">
+            This content requires a purchase to access. Price: ${content.price}
+          </p>
+          {user ? (
+            <button
+              onClick={() => setIsTransactionModalOpen(true)}
+              className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+              Purchase Now
+            </button>
+          ) : (
+            <p className="text-gray-400">Please sign in to purchase this content</p>
+          )}
+        </div>
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900">
       <Toaster
@@ -267,120 +492,7 @@ export default function ContentPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Content */}
               <div className="lg:col-span-2">
-                {content.contentType === 'article' ? (
-                  <ArticleView article={content} />
-                ) : content.contentType === 'image' ? (
-                  <ImageView image={content} />
-                ) : (
-                  <>
-                    {/* Content Preview */}
-                    <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-800">
-                      <img
-                        src={content.thumbnailURL || '/placeholder-image.jpg'}
-                        alt={content.title}
-                        className="w-full h-full object-cover"
-                      />
-                      {content.contentType === 'video' && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center"
-                          >
-                            <div className="w-0 h-0 border-t-8 border-b-8 border-l-12 border-transparent border-l-white ml-1" />
-                          </motion.button>
-                        </div>
-                      )}
-                      {content.contentType === 'image' && (
-                        <div className="absolute bottom-4 right-4">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            className="px-4 py-2 bg-red-500 text-white rounded-lg flex items-center gap-2"
-                          >
-                            <Download className="w-4 h-4" />
-                            Download Image
-                          </motion.button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Content Info */}
-                    <div className="mt-4">
-                      <h1 className="text-2xl font-bold text-white mb-2">
-                        {content.title}
-                      </h1>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2 text-gray-400">
-                            {content.contentType === 'video' && (
-                              <>
-                                <Users className="w-4 h-4" />
-                                <span>{content.views} views</span>
-                              </>
-                            )}
-                            {content.contentType === 'course' && (
-                              <>
-                                <Users className="w-4 h-4" />
-                                <span>{content.students || 0} students</span>
-                              </>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-400">
-                            <MessageCircle className="w-4 h-4" />
-                            <span>{content.commentsCount || 0} comments</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <button
-                            onClick={handleLike}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                              content.isLiked
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                            } transition-colors`}
-                            disabled={!user}
-                          >
-                            <ThumbsUp className={`w-4 h-4 ${content.isLiked ? 'fill-current' : ''}`} />
-                            <span>{content.likesCount || 0}</span>
-                          </button>
-                          <button 
-                            onClick={handleShare}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 transition-colors"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            <span>Share</span>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <div className="mb-6 p-4 bg-gray-800 rounded-xl">
-                        <p className="text-gray-300 leading-relaxed">
-                          {content.description}
-                        </p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Creator Info */}
-                <div className="mt-6 flex items-start gap-4 p-4 bg-gray-800 rounded-xl">
-                  <div className="w-12 h-12 rounded-full bg-gray-700 overflow-hidden">
-                    <img
-                      src="/placeholder-user.jpg"
-                      alt="Creator"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white">
-                      Creator
-                    </h3>
-                    <p className="text-gray-400 mt-2">
-                      Wallet: {content.creatorWallet}
-                    </p>
-                  </div>
-                </div>
+                {renderContent()}
               </div>
 
               {/* Related Content */}
@@ -421,6 +533,14 @@ export default function ContentPage() {
           </main>
         </div>
       </div>
+
+      {/* Purchase Confirmation Modal */}
+      <PurchaseConfirmModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        onConfirm={handlePurchaseConfirm}
+        content={content}
+      />
     </div>
   );
 } 
