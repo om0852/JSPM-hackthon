@@ -52,7 +52,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState(null);
 
   // Load Web3 provider
@@ -145,47 +145,30 @@ export default function Home() {
 
   // Function to handle content click
   const handleContentClick = async (content) => {
-    try {
-      if (!user) {
-        toast.error('Please sign in to access content');
-        router.push('/sign-in');
-        return;
-      }
+    if (!user) {
+      toast.error('Please sign in to access content');
+      return;
+    }
 
-      // For free content, redirect directly
-      if (content.subscriptionTier === 'free') {
-        router.push(`/content/${content.contentType}/${content._id}`);
-        return;
-      }
-
-      // Check if user has already purchased
-      const purchaseResponse = await fetch(`/api/content/purchase/${content._id}`);
-      const purchaseData = await purchaseResponse.json();
-
-      if (purchaseData.hasPurchased) {
-        router.push(`/content/${content.contentType}/${content._id}`);
-        return;
-      }
-
-      // Show purchase confirmation modal
+    if (content.subscriptionTier === 'premium' || content.subscriptionTier === 'basic') {
+      // Show confirmation modal for premium/basic content
       setSelectedContent(content);
-      await handlePurchaseConfirm(content);
-      // setIsPurchaseModalOpen(true);
-    } catch (error) {
-      console.error('Error handling content click:', error);
-      toast.error(error.message || 'Error processing request');
+      setIsTransactionModalOpen(true);
+    } else {
+      // For free content, navigate directly
+      router.push(`/content/${content.type}/${content.id}`);
     }
   };
 
   // Update the handlePurchaseConfirm function
   const handlePurchaseConfirm = async (content) => {
-    if (!content) return;
-    
-    const loadingToast = toast.loading('Initializing payment...');
-    
     try {
+      // Show loading toast
+      const loadingToast = toast.loading('Initializing payment...');
+
       // Check if MetaMask is installed
       if (!window.ethereum) {
+        toast.dismiss(loadingToast);
         throw new Error('Please install MetaMask to make purchases');
       }
 
@@ -194,6 +177,7 @@ export default function Home() {
       const account = accounts[0];
 
       if (!account) {
+        toast.dismiss(loadingToast);
         throw new Error('No account found. Please connect your MetaMask wallet.');
       }
 
@@ -207,14 +191,14 @@ export default function Home() {
       }
 
       // Get contract ABI
-      const contractABI = require('./contract.json');
+      const contractABI = CONTRACT_ABI;
       
       // Initialize contract instance
       const contract = new web3.eth.Contract(contractABI, contractAddress);
       
       // Verify contract is accessible
       try {
-        await contract.methods.owner();
+        await contract.methods.owner().call();
       } catch (error) {
         console.error('Contract verification error:', error);
         throw new Error('Unable to connect to payment contract. Please try again later.');
@@ -237,8 +221,6 @@ export default function Home() {
           value: priceInWei,
         });
 
-      console.log('Transaction:', tx);
-
       // Update purchase status in database
       const response = await fetch('/api/content/purchase', {
         method: 'POST',
@@ -248,22 +230,27 @@ export default function Home() {
         body: JSON.stringify({
           contentId: content._id,
           transactionHash: tx.transactionHash,
+          amount: content.price,
+          creatorId: content.userId,
+          creatorWallet: content.creator?.creatorWallet,
+          contentType: content.contentType,
+          subscriptionTier: content.subscriptionTier
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to record purchase');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to record purchase');
       }
 
       toast.dismiss(transactionToast);
       toast.success('Payment successful!');
-      setIsPurchaseModalOpen(false);
+      setIsTransactionModalOpen(false);
 
       // Redirect to content
       router.push(`/content/${content.contentType}/${content._id}`);
     } catch (error) {
       console.error('Transaction error:', error);
-      toast.dismiss(loadingToast);
       
       if (error.code === 4001) {
         toast.error('Transaction was rejected by user');
@@ -424,12 +411,12 @@ export default function Home() {
           </main>
         </div>
       </div>
-      <PurchaseConfirmModal
-        isOpen={isPurchaseModalOpen}
-        onClose={() => setIsPurchaseModalOpen(false)}
+      {selectedContent && <PurchaseConfirmModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
         onConfirm={handlePurchaseConfirm}
         content={selectedContent}
-      />
+      />}
     </div>
   );
 }

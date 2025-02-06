@@ -5,9 +5,11 @@ import { motion } from 'framer-motion';
 import { Calendar, DollarSign, Star, Clock, Users, BookOpen, Video, Image } from 'lucide-react';
 import Sidebar from '../home/_components/Sidebar';
 import SubscriptionNavbar from './_components/SubscriptionNavbar';
+import TransactionConfirmModal from './_components/TransactionConfirmModal';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
+import Web3 from 'web3';
 
 const getContentIcon = (type) => {
   switch (type.toLowerCase()) {
@@ -25,6 +27,8 @@ const getContentIcon = (type) => {
 export default function SubscriptionPage() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [selectedContent, setSelectedContent] = useState(null);
   const router = useRouter();
   const { user, isLoaded } = useUser();
 
@@ -55,6 +59,95 @@ export default function SubscriptionPage() {
   const totalMonthlyCost = subscriptions
     .reduce((sum, item) => sum + parseFloat(item.cost.replace('$', '').replace('/month', '')), 0)
     .toFixed(2);
+
+  const handleContentClick = (content) => {
+    if (content.tier === 'premium' || content.tier === 'basic') {
+      setSelectedContent(content);
+      setIsTransactionModalOpen(true);
+    } else {
+      // For free content, navigate directly
+      router.push(`/content/${content.type}/${content.id}`);
+    }
+  };
+
+  const handleTransactionConfirm = async (content) => {
+    try {
+      // Check if MetaMask is installed
+      if (!window.ethereum) {
+        throw new Error('Please install MetaMask to make purchases');
+      }
+
+      // Request account access
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts[0];
+
+      if (!account) {
+        throw new Error('No account found. Please connect your MetaMask wallet.');
+      }
+
+      // Initialize Web3
+      const web3 = new Web3(window.ethereum);
+      
+      // Get contract address
+      const contractAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+      if (!contractAddress) {
+        throw new Error('Contract address not configured');
+      }
+
+      // Get contract ABI
+      const contractABI = require('../home/contract.json');
+      
+      // Initialize contract
+      const contract = new web3.eth.Contract(contractABI, contractAddress);
+
+      // Convert price to Wei
+      const priceInWei = web3.utils.toWei(content.cost.replace('$', '').replace('/month', ''), 'ether');
+
+      // Show transaction confirmation toast
+      const transactionToast = toast.loading('Please confirm the transaction in MetaMask...');
+
+      // Send payment transaction
+      const tx = await contract.methods
+        .makePayment(content.creatorWallet)
+        .send({
+          from: account,
+          value: priceInWei,
+        });
+
+      // Update purchase status in database
+      const response = await fetch('/api/content/purchase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentId: content.id,
+          transactionHash: tx.transactionHash,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record purchase');
+      }
+
+      toast.dismiss(transactionToast);
+      toast.success('Payment successful!');
+      setIsTransactionModalOpen(false);
+
+      // Redirect to content
+      router.push(`/content/${content.type}/${content.id}`);
+    } catch (error) {
+      console.error('Transaction error:', error);
+      
+      if (error.code === 4001) {
+        toast.error('Transaction was rejected by user');
+      } else if (error.message.includes('insufficient funds')) {
+        toast.error('Insufficient funds in your wallet');
+      } else {
+        toast.error(error.message || 'Failed to process payment');
+      }
+    }
+  };
 
   if (!isLoaded || loading) {
     return (
@@ -137,7 +230,8 @@ export default function SubscriptionPage() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 + index * 0.1 }}
-                          className="p-6 flex items-center justify-between hover:bg-gray-750 transition-colors"
+                          className="p-6 flex items-center justify-between hover:bg-gray-750 transition-colors cursor-pointer"
+                          onClick={() => handleContentClick(content)}
                         >
                           <div className="flex items-center space-x-4">
                             <div className="relative w-12 h-12 rounded-lg overflow-hidden">
@@ -189,6 +283,13 @@ export default function SubscriptionPage() {
           </main>
         </div>
       </div>
+      
+      <TransactionConfirmModal
+        isOpen={isTransactionModalOpen}
+        onClose={() => setIsTransactionModalOpen(false)}
+        onConfirm={handleTransactionConfirm}
+        content={selectedContent}
+      />
     </div>
   );
 } 

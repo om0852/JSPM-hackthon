@@ -15,7 +15,15 @@ export async function POST(req) {
             }, { status: 401 });
         }
 
-        const { contentId, transactionHash } = await req.json();
+        const { 
+            contentId, 
+            transactionHash, 
+            amount,
+            creatorId,
+            creatorWallet,
+            contentType,
+            subscriptionTier
+        } = await req.json();
 
         if (!contentId || !transactionHash) {
             return NextResponse.json({ 
@@ -35,16 +43,39 @@ export async function POST(req) {
             }, { status: 404 });
         }
 
+        // Check if purchase already exists
+        const existingPurchase = await Purchase.findOne({
+            userId: user.id,
+            contentId: contentId
+        });
+
+        if (existingPurchase) {
+            return NextResponse.json({
+                status: 'error',
+                message: 'Content already purchased'
+            }, { status: 400 });
+        }
+
         // Create purchase record
         const purchase = new Purchase({
             userId: user.id,
             contentId,
             transactionHash,
-            amount: content.price,
-            creatorId: content.userId
+            amount,
+            creatorId,
+            creatorWallet,
+            contentType,
+            subscriptionTier,
+            purchaseDate: new Date(),
+            status: 'completed'
         });
 
         await purchase.save();
+
+        // Update content stats
+        await Content.findByIdAndUpdate(contentId, {
+            $inc: { purchases: 1 }
+        });
 
         return NextResponse.json({
             status: 'success',

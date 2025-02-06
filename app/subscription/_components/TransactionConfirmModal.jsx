@@ -2,7 +2,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { CreditCard } from 'lucide-react';
 
-export default function PurchaseConfirmModal({ isOpen, onClose, onConfirm, content }) {
+export default function TransactionConfirmModal({ isOpen, onClose, onConfirm, content }) {
   return (
     <Transition appear show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
@@ -40,7 +40,7 @@ export default function PurchaseConfirmModal({ isOpen, onClose, onConfirm, conte
                   as="h3"
                   className="text-lg font-medium leading-6 text-white text-center"
                 >
-                  Confirm Purchase
+                  Confirm Transaction
                 </Dialog.Title>
 
                 <div className="mt-4">
@@ -51,15 +51,15 @@ export default function PurchaseConfirmModal({ isOpen, onClose, onConfirm, conte
                   <div className="bg-gray-700 rounded-lg p-4 mb-4">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-300">Price:</span>
-                      <span className="text-white font-semibold">${content?.price}</span>
+                      <span className="text-white font-semibold">{content?.cost}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm mt-2">
                       <span className="text-gray-300">Type:</span>
-                      <span className="text-white capitalize">{content?.contentType}</span>
+                      <span className="text-white capitalize">{content?.type}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm mt-2">
                       <span className="text-gray-300">Tier:</span>
-                      <span className="text-white capitalize">{content?.subscriptionTier}</span>
+                      <span className="text-white capitalize">{content?.tier}</span>
                     </div>
                   </div>
 
@@ -79,7 +79,7 @@ export default function PurchaseConfirmModal({ isOpen, onClose, onConfirm, conte
                   <button
                     type="button"
                     className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-                    onClick={()=>onConfirm(content)}
+                    onClick={() => onConfirm(content)}
                   >
                     Confirm Purchase
                   </button>
