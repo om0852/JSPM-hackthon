@@ -1,70 +1,21 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, DollarSign, Star, Clock, Users, BookOpen, Video, Image } from 'lucide-react';
 import Sidebar from '../home/_components/Sidebar';
 import SubscriptionNavbar from './_components/SubscriptionNavbar';
-import ManageSubscriptionModal from './_components/ManageSubscriptionModal';
-
-const subscribedContent = [
-  {
-    id: 1,
-    title: "Advanced Web Development Course 2024",
-    thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-    provider: "Tech Masters Pro",
-    subscriptionDate: "2024-01-15",
-    renewalDate: "2025-01-15",
-    tier: "Premium",
-    cost: "$14.99/month",
-    type: "Course",
-    totalContent: "45 lessons"
-  },
-  {
-    id: 2,
-    title: "Premium Tech Articles Bundle",
-    thumbnail: "https://images.unsplash.com/photo-1519389950473-47ba0277781c",
-    provider: "TechInsights+",
-    subscriptionDate: "2024-02-01",
-    renewalDate: "2025-02-01",
-    tier: "Pro",
-    cost: "$9.99/month",
-    type: "Article",
-    totalContent: "100+ articles"
-  },
-  {
-    id: 3,
-    title: "Professional Photography Collection",
-    thumbnail: "https://images.unsplash.com/photo-1554048612-b6a482bc67e5",
-    provider: "VisualArts Pro",
-    subscriptionDate: "2024-01-20",
-    renewalDate: "2025-01-20",
-    tier: "Premium",
-    cost: "$12.99/month",
-    type: "Image",
-    totalContent: "500+ images"
-  },
-  {
-    id: 4,
-    title: "Video Tutorials Premium Access",
-    thumbnail: "https://images.unsplash.com/photo-1536240478700-b869070f9279",
-    provider: "VideoEdu Plus",
-    subscriptionDate: "2024-02-15",
-    renewalDate: "2025-02-15",
-    tier: "Premium",
-    cost: "$19.99/month",
-    type: "Video",
-    totalContent: "200+ videos"
-  }
-];
+import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
 
 const getContentIcon = (type) => {
-  switch (type) {
-    case 'Course':
+  switch (type.toLowerCase()) {
+    case 'course':
       return BookOpen;
-    case 'Video':
+    case 'video':
       return Video;
-    case 'Image':
+    case 'image':
       return Image;
     default:
       return Star;
@@ -72,22 +23,52 @@ const getContentIcon = (type) => {
 };
 
 export default function SubscriptionPage() {
-  const [selectedContent, setSelectedContent] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { user, isLoaded } = useUser();
 
-  const totalMonthlyCost = subscribedContent
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      try {
+        const response = await fetch('/api/subscriptions');
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch subscriptions');
+        }
+
+        setSubscriptions(data.data);
+      } catch (error) {
+        console.error('Error fetching subscriptions:', error);
+        toast.error('Failed to load subscriptions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isLoaded && user) {
+      fetchSubscriptions();
+    }
+  }, [isLoaded, user]);
+
+  const totalMonthlyCost = subscriptions
     .reduce((sum, item) => sum + parseFloat(item.cost.replace('$', '').replace('/month', '')), 0)
     .toFixed(2);
 
-  const handleManageClick = (content) => {
-    setSelectedContent(content);
-    setIsModalOpen(true);
-  };
+  if (!isLoaded || loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-red-500 border-t-transparent"></div>
+        <p className="ml-2 text-gray-300">Loading subscriptions...</p>
+      </div>
+    );
+  }
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedContent(null);
-  };
+  if (!user) {
+    router.push('/sign-in');
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -105,8 +86,8 @@ export default function SubscriptionPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-8"
               >
-                <h1 className="text-3xl font-bold mb-2 text-white">Manage Your Subscriptions</h1>
-                <p className="text-gray-400">View and manage your content subscriptions</p>
+                <h1 className="text-3xl font-bold mb-2 text-white">Your Subscriptions</h1>
+                <p className="text-gray-400">View your content subscriptions and purchases</p>
               </motion.div>
 
               {/* Subscription Stats */}
@@ -121,7 +102,7 @@ export default function SubscriptionPage() {
                     <h3 className="text-lg font-semibold text-white">Active Subscriptions</h3>
                     <Users className="w-5 h-5 text-red-500" />
                   </div>
-                  <p className="text-3xl font-bold text-white">{subscribedContent.length}</p>
+                  <p className="text-3xl font-bold text-white">{subscriptions.length}</p>
                 </div>
                 <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
                   <div className="flex items-center justify-between mb-4">
@@ -143,76 +124,71 @@ export default function SubscriptionPage() {
                   <h2 className="text-xl font-semibold text-white">Subscribed Content</h2>
                 </div>
                 <div className="divide-y divide-gray-700">
-                  {subscribedContent.map((content, index) => {
-                    const ContentIcon = getContentIcon(content.type);
-                    return (
-                      <motion.div
-                        key={content.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 + index * 0.1 }}
-                        className="p-6 flex items-center justify-between hover:bg-gray-750 transition-colors"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="relative w-12 h-12 rounded-lg overflow-hidden">
-                            <img 
-                              src={content.thumbnail} 
-                              alt={content.title}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute bottom-0 right-0 bg-gray-900 p-1 rounded-tl">
-                              <ContentIcon className="w-3 h-3 text-red-500" />
+                  {subscriptions.length === 0 ? (
+                    <div className="p-6 text-center text-gray-400">
+                      No subscriptions found. Purchase some content to get started!
+                    </div>
+                  ) : (
+                    subscriptions.map((content, index) => {
+                      const ContentIcon = getContentIcon(content.type);
+                      return (
+                        <motion.div
+                          key={content.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + index * 0.1 }}
+                          className="p-6 flex items-center justify-between hover:bg-gray-750 transition-colors"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="relative w-12 h-12 rounded-lg overflow-hidden">
+                              <img 
+                                src={content.thumbnail} 
+                                alt={content.title}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute bottom-0 right-0 bg-gray-900 p-1 rounded-tl">
+                                <ContentIcon className="w-3 h-3 text-red-500" />
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="font-semibold flex items-center gap-2 text-white">
+                                {content.title}
+                                {content.tier === "premium" && (
+                                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                                )}
+                              </h3>
+                              <p className="text-sm text-gray-400">
+                                {content.provider} • {content.totalContent}
+                              </p>
                             </div>
                           </div>
-                          <div>
-                            <h3 className="font-semibold flex items-center gap-2 text-white">
-                              {content.title}
-                              {content.tier === "Premium" && (
-                                <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                              )}
-                            </h3>
-                            <p className="text-sm text-gray-400">
-                              {content.provider} • {content.totalContent}
-                            </p>
+                          <div className="flex items-center gap-8">
+                            <div className="text-right">
+                              <p className="text-sm text-gray-400">Subscription Cost</p>
+                              <p className="font-semibold text-red-400">{content.cost}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-400">Renewal Date</p>
+                              <p className="font-semibold flex items-center gap-1 text-white">
+                                <Clock className="w-4 h-4" />
+                                {new Date(content.renewalDate).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-8">
-                          <div className="text-right">
-                            <p className="text-sm text-gray-400">Subscription Cost</p>
-                            <p className="font-semibold text-red-400">{content.cost}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm text-gray-400">Renewal Date</p>
-                            <p className="font-semibold flex items-center gap-1 text-white">
-                              <Clock className="w-4 h-4" />
-                              {new Date(content.renewalDate).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </p>
-                          </div>
-                          <button 
-                            onClick={() => handleManageClick(content)}
-                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                          >
-                            Manage
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                        </motion.div>
+                      );
+                    })
+                  )}
                 </div>
               </motion.div>
             </div>
           </main>
         </div>
       </div>
-      <ManageSubscriptionModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        content={selectedContent}
-      />
     </div>
   );
 } 
