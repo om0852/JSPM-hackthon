@@ -57,7 +57,7 @@ const CreateContentModal = ({ isOpen, onClose, onContentCreated, editingContent 
       case 'description':
         if (!value?.trim()) return 'Description is required';
         if (value.length < 10) return 'Description must be at least 10 characters';
-        if (value.length > 500) return 'Description must be less than 500 characters';
+        if (value.length > 1000) return 'Description must be less than 1000 characters';
         return '';
       case 'contentFile':
         if (!editingContent && !value) return 'Content file is required';

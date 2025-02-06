@@ -57,10 +57,7 @@ export default function VerifyPage() {
 
   // Check if MetaMask is installed
   const checkMetaMaskInstalled = () => {
-    if (typeof window.ethereum !== 'undefined') {
-      return true;
-    }
-    return false;
+    return Boolean(window.ethereum && window.ethereum.isMetaMask);
   };
 
   // Connect to MetaMask
