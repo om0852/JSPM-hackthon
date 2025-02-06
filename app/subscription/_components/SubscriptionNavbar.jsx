@@ -17,12 +17,30 @@ function SubscriptionNavbar() {
         <Link href="/home">
           <motion.div 
             whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             className="flex items-center cursor-pointer"
           >
-            <h1 className="text-2xl font-bold tracking-tight">
-              <span className="text-white">Block</span>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-red-600">Tube</span>
-            </h1>
+            <motion.h1 
+              className="text-2xl font-bold tracking-tight"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <motion.span 
+                className="text-white"
+                whileHover={{ color: '#f87171' }}
+                transition={{ duration: 0.2 }}
+              >
+                Block
+              </motion.span>
+              <motion.span 
+                className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-red-600"
+                whileHover={{ scale: 1.1 }}
+                transition={{ duration: 0.2 }}
+              >
+                Tube
+              </motion.span>
+            </motion.h1>
           </motion.div>
         </Link>
 
