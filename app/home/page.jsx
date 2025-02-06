@@ -334,7 +334,7 @@ export default function Home() {
                   />
                   <div className="absolute top-2 right-2 flex gap-2">
                     {/* Content Type Badge */}
-                    <div className={`px-3 py-1 rounded-full text-xs flex items-center gap-1 ${
+                    <div className={`px-3 py-1 capitalize rounded-full text-xs flex items-center gap-1 ${
                       content.contentType === 'video' ? 'bg-blue-900 text-blue-200 border border-blue-700' :
                       content.contentType === 'article' ? 'bg-green-900 text-green-200 border border-green-700' :
                       content.contentType === 'course' ? 'bg-purple-900 text-purple-200 border border-purple-700' :
