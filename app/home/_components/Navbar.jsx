@@ -12,6 +12,50 @@ import Link from 'next/link'
 // Dynamically import SearchResults
 const SearchResults = dynamic(() => import('./SearchResults'), { ssr: false });
 
+const BlockTubeIcon = () => (
+  <motion.svg
+    width="32"
+    height="32"
+    viewBox="0 0 32 32"
+    className="mr-2"
+    initial={{ scale: 0 }}
+    animate={{ scale: 1 }}
+    transition={{ duration: 0.5, type: "spring" }}
+  >
+    <motion.rect
+      x="4"
+      y="4"
+      width="24"
+      height="24"
+      rx="4"
+      fill="url(#gradient)"
+      className="mr-2"
+      initial={{ rotate: 0 }}
+      animate={{
+        rotate: 360,
+        transition: {
+          duration: 20,
+          repeat: Infinity,
+          ease: "linear"
+        }
+      }}
+    />
+    <motion.path
+      d="M20 16L14 20L14 12L20 16Z"
+      fill="white"
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ delay: 0.2 }}
+    />
+    <defs>
+      <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
+        <stop offset="0%" stopColor="#ef4444" />
+        <stop offset="100%" stopColor="#dc2626" />
+      </linearGradient>
+    </defs>
+  </motion.svg>
+);
+
 function Navbar({ selectedFilter, onFilterChange }) {
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -84,11 +128,33 @@ function Navbar({ selectedFilter, onFilterChange }) {
         <Link href="/home">
           <motion.div 
             whileHover={{ scale: 1.05 }}
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
             className="flex items-center cursor-pointer"
           >
+            <BlockTubeIcon />
             <h1 className="text-2xl font-bold tracking-tight">
-              <span className="text-white">Block</span>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-red-600">Tube</span>
+              <motion.span 
+                className="text-white inline-block"
+                whileHover={{ scale: 1.1 }}
+              >
+                Block
+              </motion.span>
+              <motion.span 
+                className="bg-clip-text text-transparent bg-gradient-to-r from-red-500 to-red-600 inline-block"
+                whileHover={{ scale: 1.1 }}
+                animate={{ 
+                  rotate: [0, 5, -5, 0],
+                  transition: {
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }
+                }}
+              >
+                Tube
+              </motion.span>
             </h1>
           </motion.div>
         </Link>

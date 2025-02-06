@@ -9,6 +9,7 @@ export default authMiddleware({
     // Public routes that don't require authentication or verification
     publicRoutes: [
         "/api/health",
+        "/api/verify",
         "/api",
         "/sign-in",
         "/sign-up",
@@ -21,9 +22,10 @@ export default authMiddleware({
 
         // Skip verification check for public routes
         if (!auth.userId || 
-            path.startsWith('/api') || 
+            path === '/api/verify' ||
             path === '/sign-in' || 
-            path === '/sign-up') {
+            path === '/sign-up' ||
+            path === '/') {
             return;
         }
 
@@ -49,19 +51,16 @@ export default authMiddleware({
         try {
             const verifyResponse = await fetch(`${url.origin}/api/verify`, {
                 headers: {
-                    'Authorization': `Bearer ${auth.sessionId}`,
+                    'Cookie': req.headers.get('cookie') || '',
+                    'Authorization': `Bearer ${auth.getToken()}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            if (!verifyResponse.ok) {
-                throw new Error('Failed to check verification status');
-            }
-
             const data = await verifyResponse.json();
 
             // If user is not verified and not already on verify page, redirect to verify
-            if (!data.data.isVerified && path !== '/verify') {
+            if (!data.data?.isVerified && path !== '/verify') {
                 return NextResponse.redirect(new URL('/verify', req.url));
             }
 

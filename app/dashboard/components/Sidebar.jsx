@@ -8,7 +8,9 @@ import {
   UserCircle,
   Settings,
   Youtube,
-  Home
+  Home,
+  Info,
+  Mail
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -20,6 +22,8 @@ const Sidebar = () => {
     { name: 'Earnings', icon: DollarSign, path: '/dashboard/earnings' },
     { name: 'Profile', icon: UserCircle, path: '/dashboard/profile' },
     { name: 'Settings', icon: Settings, path: '/dashboard/settings' },
+    { name: 'About', icon: Info, path: '/about' },
+    { name: 'Contact', icon: Mail, path: '/contact' },
   ];
 
   return (

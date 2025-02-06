@@ -106,6 +106,9 @@ export async function POST(req) {
 // GET endpoint to check verification status
 export async function GET(req) {
     try {
+        // Get headers before any async operations
+        const cookieStore = cookies();
+        
         const user = await currentUser();
         
         if (!user) {

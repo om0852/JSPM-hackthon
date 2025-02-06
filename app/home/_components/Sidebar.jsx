@@ -7,7 +7,9 @@ import {
   LayoutDashboard, 
   Settings, 
   CreditCard,
-  LogOut
+  LogOut,
+  Info,
+  Mail
 } from "lucide-react";
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -37,6 +39,16 @@ const Sidebar = () => {
       icon: Settings,
       label: "Settings",
       href: "/settings",
+    },
+    {
+      icon: Info,
+      label: "About",
+      href: "/about",
+    },
+    {
+      icon: Mail,
+      label: "Contact",
+      href: "/contact",
     },
   ];
 
